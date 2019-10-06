@@ -1,0 +1,2 @@
+# Lingon
+Lingon programming language
