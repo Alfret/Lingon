@@ -59,12 +59,13 @@ release_parser(Parser* parser);
 // -------------------------------------------------------------------------- //
 
 const Tok*
-parser_next(Parser* parser);
+parser_next(Parser* parser, bool skip_leading_whitespace);
 
 // -------------------------------------------------------------------------- //
 
-const Tok*
-parser_next_skip_whitespace(Parser* parser);
+/* Consume whitespace tokens */
+void
+parser_consume_whitespace(Parser* parser);
 
 // -------------------------------------------------------------------------- //
 
@@ -73,8 +74,8 @@ parser_peek(const Parser* parser);
 
 // -------------------------------------------------------------------------- //
 
-RangePos
-parser_pos_cur(const Parser* parser);
+Span
+parser_span_cur(const Parser* parser);
 
 // -------------------------------------------------------------------------- //
 

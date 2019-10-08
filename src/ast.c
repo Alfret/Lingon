@@ -30,7 +30,7 @@
 
 #define LN_AST_KIND_CHECK(ast, _kind)                                          \
   do {                                                                         \
-    assrt(ast->kind == _kind, &LN_CSTR("Wrong ast kind"));                     \
+    assrt(ast->kind == _kind, make_str("Wrong ast kind"));                     \
   } while (0)
 
 // ========================================================================== //
@@ -72,7 +72,7 @@ ast_list_append(AstList* list, const Ast* ast)
 Ast
 ast_list_remove(AstList* list, u32 index)
 {
-  assrt(index < list->len, &LN_CSTR("Index out of bounds (%u)"), index);
+  assrt(index < list->len, make_str("Index out of bounds (%u)"), index);
   Ast ast = list->buf[index];
   memmove(list->buf + index,
           list->buf + index + 1,
@@ -85,7 +85,7 @@ ast_list_remove(AstList* list, u32 index)
 const Ast*
 ast_list_get(const AstList* list, u32 index)
 {
-  assrt(index < list->len, &LN_CSTR("Index out of bounds (%u)"), index);
+  assrt(index < list->len, make_str("Index out of bounds (%u)"), index);
   return &list->buf[index];
 }
 
@@ -176,7 +176,7 @@ release_ast(Ast* ast)
       release_ast_fn(ast);
     }
     default: {
-      panic(&LN_CSTR("Invalid token kind"));
+      panic(make_str("Invalid token kind"));
     }
   }
   LN_UNUSED(ast);

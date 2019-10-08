@@ -66,7 +66,7 @@ static char s_str_fmt_buf[kStrFmtBufSize];
 // -------------------------------------------------------------------------- //
 
 Str
-make_str(const char* str)
+make_str_copy(const char* str)
 {
   u32 size = cstr_size(str);
   u8* buf = alloc(size + 1, kLnMinAlign);
@@ -103,7 +103,7 @@ str_null()
 // -------------------------------------------------------------------------- //
 
 Str
-str_format(const Str* fmt, ...)
+str_format(Str fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
@@ -115,11 +115,11 @@ str_format(const Str* fmt, ...)
 // -------------------------------------------------------------------------- //
 
 Str
-str_format_v(const Str* fmt, va_list args)
+str_format_v(Str fmt, va_list args)
 {
-  int written = vsnprintf(s_str_fmt_buf, kStrFmtBufSize, str_cstr(fmt), args);
-  assrt(written != -1, &LN_CSTR("Str format buffer too small"));
-  return make_str(s_str_fmt_buf);
+  int written = vsnprintf(s_str_fmt_buf, kStrFmtBufSize, str_cstr(&fmt), args);
+  assrt(written != -1, make_str("Str format buffer too small"));
+  return make_str_copy(s_str_fmt_buf);
 }
 
 // -------------------------------------------------------------------------- //

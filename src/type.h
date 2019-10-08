@@ -20,156 +20,156 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef LN_AST_H
-#define LN_AST_H
+#ifndef LN_TYPE_H
+#define LN_TYPE_H
 
-#include "str.h"
-#include "span.h"
-
-typedef struct AstProg AstProg;
-typedef struct AstFn AstFn;
-typedef struct Ast Ast;
+#include "common.h"
 
 // ========================================================================== //
-// AstList
+// TypeKind
 // ========================================================================== //
 
-/* List of Ast structs */
-typedef struct AstList
+typedef enum TypeKind
 {
-  /* buffer */
-  Ast* buf;
-  /* length */
-  u32 len;
-  /* capacity */
-  u32 cap;
-} AstList;
+  kTypeChar,
+  kTypeBool,
 
-// -------------------------------------------------------------------------- //
+  kTypeU8,
+  kTypeS8,
+  kTypeU16,
+  kTypeS16,
+  kTypeU32,
+  kTypeS32,
+  kTypeU64,
+  kTypeS64,
 
-/* Make empty ast list */
-AstList
-make_ast_list(u32 cap);
+  kTypeF32,
+  kTypeF64,
 
-// -------------------------------------------------------------------------- //
-
-/* Release ast list */
-void
-release_ast_list(AstList* list);
-
-// -------------------------------------------------------------------------- //
-
-/* Append to ast list */
-void
-ast_list_append(AstList* list, const Ast* ast);
-
-// -------------------------------------------------------------------------- //
-
-/* Remove from ast list */
-Ast
-ast_list_remove(AstList* list, u32 index);
-
-// -------------------------------------------------------------------------- //
-
-/* Get object from ast list */
-const Ast*
-ast_list_get(const AstList* list, u32 index);
-
-// -------------------------------------------------------------------------- //
-
-/* Reserve capacity in ast list */
-void
-ast_list_reserve(AstList* list, u32 cap);
+  kTypeArray,
+  kTypePointer,
+  kTypeStruct,
+  kTypeEnum,
+  kTypeTrait,
+} TypeKind;
 
 // ========================================================================== //
-// AstProg
+// Type
 // ========================================================================== //
 
-/* Ast program node */
-typedef struct AstProg
+/* Type data union */
+typedef struct Type
 {
-  /* Functions */
-  AstList funs;
-} AstProg;
-
-// -------------------------------------------------------------------------- //
-
-Ast
-make_ast_prog();
-
-// -------------------------------------------------------------------------- //
-
-void
-release_ast_prog(Ast* ast);
-
-// -------------------------------------------------------------------------- //
-
-void
-ast_prog_add_fn(Ast* ast_prog, Ast* ast_fn);
-
-// ========================================================================== //
-// AstFn
-// ========================================================================== //
-
-/* Ast function node */
-typedef struct AstFn
-{
-  StrSlice name;
-} AstFn;
-
-// -------------------------------------------------------------------------- //
-
-Ast
-make_ast_fn(StrSlice name);
-
-// -------------------------------------------------------------------------- //
-
-void
-release_ast_fn(Ast* ast);
-
-// ========================================================================== //
-// Ast
-// ========================================================================== //
-
-/* Ast node kind */
-typedef enum AstKind
-{
-  /* Invalid ast type */
-  kAstInvalid = 0,
-  /* Program node */
-  kAstProg,
-  /* Function node */
-  kAstFn
-} AstKind;
-
-// -------------------------------------------------------------------------- //
-
-/* Abstract syntax tree */
-typedef struct Ast
-{
-  /* Span */
-  Span span;
   /* Kind */
-  AstKind kind;
+  TypeKind kind;
+  /* Data */
   union
   {
-    /* Program node */
-    AstProg prog;
-    /* Function node */
-    AstFn fn;
+    struct
+    {
+      /* Array type */
+      struct Type* type;
+      /* Length */
+      u32 len;
+    } array;
+    struct
+    {
+      /* Pointée type */
+      struct Type* type;
+    } pointer;
+    struct
+    {
+      u32 tmp;
+    } strct;
+    struct
+    {
+      u32 tmp;
+    } enuum;
+    struct
+    {
+      u32 tmp;
+    } trait;
   };
-} Ast;
+} Type;
 
 // -------------------------------------------------------------------------- //
 
-/* Make an invalid ast node */
-Ast
-make_ast_invalid();
-
-// -------------------------------------------------------------------------- //
-
-/* Recursively release ast */
 void
-release_ast(Ast* ast);
+types_init();
 
-#endif // LN_AST_H
+// -------------------------------------------------------------------------- //
+
+void
+types_cleanup();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_array_type(Type* elem_type, u32 len);
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_pointer_type(Type* pointee_type);
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_char();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_bool();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_u8();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_s8();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_u16();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_s16();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_u32();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_s32();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_u64();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_s64();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_f32();
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_f64();
+
+#endif // LN_TYPE_H

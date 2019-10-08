@@ -20,87 +20,80 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <mimalloc.h>
+#ifndef LN_LSP_H
+#define LN_LSP_H
+
+#include <chif_net.h>
 
 #include "common.h"
 #include "str.h"
 
 // ========================================================================== //
-// Assert
+// LspErr
 // ========================================================================== //
 
-void
-assrt(bool cond, Str fmt, ...)
+/* Lsp errors */
+typedef enum LspErr
 {
-  if (!cond) {
-    va_list args;
-    va_start(args, fmt);
-    assrt_v(cond, fmt, args);
-    va_end(args);
-  }
-}
+  /* No error */
+  kLspNoErr = 0,
+  /* Other error */
+  kLspErrOther,
+  /* Memory error */
+  kLspMemErr,
+  /* Failed to connect */
+  kLspConnFailed,
+  /* Connection lost */
+  kLspConnLost,
+  /* Failed to read */
+  kLspRecvFail
+} LspErr;
 
 // -------------------------------------------------------------------------- //
 
-void
-assrt_v(bool cond, Str fmt, va_list args)
-{
-  if (!cond) {
-    panic_v(fmt, args);
-  }
-}
-
-// -------------------------------------------------------------------------- //
-
-void
-panic(Str fmt, ...)
-{
-  va_list args;
-  va_start(args, fmt);
-  panic_v(fmt, args);
-  va_end(args);
-}
-
-// -------------------------------------------------------------------------- //
-
-void
-panic_v(Str fmt, va_list args)
-{
-  Str msg = str_format_v(fmt, args);
-  fprintf(stderr, "Program panicked: %s\n", str_cstr(&msg));
-  fflush(stderr);
-  quick_exit(-1);
-}
+Str
+lsp_err_str(LspErr err);
 
 // ========================================================================== //
-// Mem
+// Lsp
 // ========================================================================== //
 
-static u64 s_mem_usage;
+/* Lsp */
+typedef struct Lsp
+{
+  /* Socket */
+  chif_net_socket sock;
+  /* Data for split packets */
+  struct
+  {
+    /* Content-Length */
+    u32 size;
+  } header;
+} Lsp;
 
 // -------------------------------------------------------------------------- //
 
-void*
-alloc(u64 size, u64 align)
-{
-  void* mem = mi_malloc_aligned(size, align);
-  s_mem_usage += mi_usable_size(mem);
-  return mem;
-}
+Lsp
+make_lsp(void);
 
 // -------------------------------------------------------------------------- //
 
 void
-release(void* mem)
-{
-  s_mem_usage -= mi_usable_size(mem);
-  mi_free(mem);
-}
+release_lsp(Lsp* lsp);
 
 // -------------------------------------------------------------------------- //
 
-u64
-mem_usage()
-{
-  return s_mem_usage;
-}
+LspErr
+lsp_connect(Lsp* lsp, Str type, Str host, Str port);
+
+// -------------------------------------------------------------------------- //
+
+void
+lsp_disconnect(Lsp* lsp);
+
+// -------------------------------------------------------------------------- //
+
+LspErr
+lsp_run(Lsp* lsp);
+
+#endif // LN_LSP_H

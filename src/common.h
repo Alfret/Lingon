@@ -42,8 +42,14 @@ typedef struct Str Str;
 #define LN_CHECK_LEAK()                                                        \
   do {                                                                         \
     assrt(                                                                     \
-      mem_usage() == 0, &LN_CSTR("Leaking memory (%u bytes)"), mem_usage());   \
+      mem_usage() == 0, make_str("Leaking memory (%u bytes)"), mem_usage());   \
   } while (0)
+
+#define LN_CONST(name, value)                                                  \
+  enum                                                                         \
+  {                                                                            \
+    name = value                                                               \
+  };
 
 #define kLnMinAlign sizeof(void*)
 
@@ -61,6 +67,9 @@ typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
+typedef float f32;
+typedef double f64;
+
 #if defined(__linux__)
 #define LN_NORET __attribute__((noreturn))
 #else
@@ -72,22 +81,22 @@ typedef int64_t s64;
 // ========================================================================== //
 
 void
-assrt(bool cond, const Str* fmt, ...);
+assrt(bool cond, Str fmt, ...);
 
 // -------------------------------------------------------------------------- //
 
 void
-assrt_v(bool cond, const Str* fmt, va_list args);
+assrt_v(bool cond, Str fmt, va_list args);
 
 // -------------------------------------------------------------------------- //
 
 LN_NORET void
-panic(const Str* fmt, ...);
+panic(Str fmt, ...);
 
 // -------------------------------------------------------------------------- //
 
 LN_NORET void
-panic_v(const Str* fmt, va_list args);
+panic_v(Str fmt, va_list args);
 
 // ========================================================================== //
 // Mem

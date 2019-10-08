@@ -1,4 +1,5 @@
 fn main() -> s32 {
     let p = 452;
+    let s = "My string";
     ret p;
 }

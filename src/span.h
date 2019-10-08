@@ -44,37 +44,51 @@ typedef struct Pos
 Pos
 make_pos(u32 off, u32 line, u32 col);
 
+// -------------------------------------------------------------------------- //
+
 /* Calculate line and column */
 Pos
 make_pos_calc(const Str* str, u32 off);
+
+// -------------------------------------------------------------------------- //
+
+/* True if 'pos' is before 'other' */
+bool
+pos_is_before(const Pos* pos, const Pos* other);
+
+// -------------------------------------------------------------------------- //
+
+/* True if 'pos' is after 'other' */
+bool
+pos_is_after(const Pos* pos, const Pos* other);
 
 // ========================================================================== //
 // RangePos
 // ========================================================================== //
 
-/* Position (Range) */
-typedef struct RangePos
+/* Span (Range) */
+typedef struct Span
 {
   /* Begin pos */
   Pos beg;
   /* End pos */
   Pos end;
-} RangePos;
+} Span;
 
 /* Make range pos from begin and end pos */
-RangePos
-make_range_pos(Pos beg, Pos end);
+Span
+make_span(Pos beg, Pos end);
 
 // -------------------------------------------------------------------------- //
 
 /* Extract str slice from str and range pos */
 StrSlice
-range_pos_slice(const RangePos* pos, const Str* src);
+span_slice(const Span* pos, const Str* src);
 
 // -------------------------------------------------------------------------- //
 
 /* Join two range pos into one */
-RangePos
-range_pos_join(const RangePos* pos0, const RangePos* pos1);
+Span
+span_join(const Span* pos0, const Span* pos1);
 
 #endif // LN_POS_H

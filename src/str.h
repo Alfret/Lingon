@@ -49,10 +49,6 @@ cstr_eq(const char* str0, const char* str1);
 // Str
 // ========================================================================== //
 
-/* Produce a string from string literal. Result must not be released */
-#define LN_CSTR(str)                                                           \
-  (Str) { .buf = (u8*)str, .size = cstr_size(str), .len = cstr_len(str) }
-
 /* String */
 typedef struct Str
 {
@@ -66,8 +62,13 @@ typedef struct Str
 
 // -------------------------------------------------------------------------- //
 
+#define make_str(str)                                                          \
+  (Str) { .buf = (u8*)str, .size = cstr_size(str), .len = cstr_len(str) }
+
+// -------------------------------------------------------------------------- //
+
 Str
-make_str(const char* str);
+make_str_copy(const char* str);
 
 // -------------------------------------------------------------------------- //
 
@@ -82,12 +83,12 @@ str_null();
 // -------------------------------------------------------------------------- //
 
 Str
-str_format(const Str* fmt, ...);
+str_format(Str fmt, ...);
 
 // -------------------------------------------------------------------------- //
 
 Str
-str_format_v(const Str* fmt, va_list args);
+str_format_v(Str fmt, va_list args);
 
 // -------------------------------------------------------------------------- //
 

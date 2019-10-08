@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "pos.h"
+#include "span.h"
 
 // ========================================================================== //
 // Pos
@@ -52,29 +52,49 @@ make_pos_calc(const Str* str, u32 off)
   return make_pos(off, line, col);
 }
 
+// -------------------------------------------------------------------------- //
+
+bool
+pos_is_before(const Pos* pos, const Pos* other)
+{
+  return pos->off < other->off;
+}
+
+// -------------------------------------------------------------------------- //
+
+/* True if 'pos' is after 'other' */
+bool
+pos_is_after(const Pos* pos, const Pos* other)
+{
+  return pos->off > other->off;
+}
+
 // ========================================================================== //
 // RangePos
 // ========================================================================== //
 
-RangePos
-make_range_pos(Pos beg, Pos end)
+Span
+make_span(Pos beg, Pos end)
 {
-  return (RangePos){ .beg = beg, .end = end };
+  return (Span){ .beg = beg, .end = end };
 }
 
 // -------------------------------------------------------------------------- //
 
 StrSlice
-range_pos_slice(const RangePos* pos, const Str* src)
+span_slice(const Span* pos, const Str* src)
 {
   return make_str_slice(src, pos->beg.off, pos->end.off - pos->beg.off);
 }
 
 // -------------------------------------------------------------------------- //
 
-RangePos
-range_pos_join(const RangePos* pos0, const RangePos* pos1)
+Span
+span_join(const Span* pos0, const Span* pos1)
 {
-  LN_UNUSED(pos1);
-  return *pos0;
+  const Pos beg =
+    (pos_is_before(&pos0->beg, &pos1->beg) ? pos0->beg : pos1->beg);
+  const Pos end =
+    (pos_is_after(&pos0->end, &pos1->end) ? pos0->end : pos1->end);
+  return make_span(beg, end);
 }

@@ -32,7 +32,7 @@
 
 #define TOK_STR_CASE(name)                                                     \
   case name:                                                                   \
-    return LN_CSTR(#name);
+    return make_str(#name);
 
 // -------------------------------------------------------------------------- //
 
@@ -48,7 +48,7 @@ tok_kind_str(TokKind kind)
     TOK_STR_CASE(kTokKeyword)
     TOK_STR_CASE(kTokSym)
     default: {
-      return LN_CSTR("unknown");
+      return make_str("unknown");
     }
   }
 }
@@ -58,7 +58,7 @@ tok_kind_str(TokKind kind)
 // ========================================================================== //
 
 #define LN_TOK_KW_EQ(name, kind)                                               \
-  if (str_slice_eq_str(slice, &LN_CSTR(name))) {                               \
+  if (str_slice_eq_str(slice, &make_str(name))) {                              \
     *p_kind = kind;                                                            \
     return true;                                                               \
   }
@@ -94,9 +94,9 @@ tok_kw_kind_get(StrSlice* slice, TokKwKind* p_kind)
 // ========================================================================== //
 
 Tok
-make_tok(TokKind kind, StrSlice value, RangePos pos)
+make_tok(TokKind kind, StrSlice value, Span span)
 {
-  return (Tok){ .kind = kind, .value = value, .pos = pos };
+  return (Tok){ .kind = kind, .value = value, .span = span };
 }
 
 // ========================================================================== //
@@ -239,9 +239,9 @@ lex_handle_whitespace(Lex* lex)
     return kLexNoErr;
   }
 
-  RangePos pos = make_range_pos(beg, end);
-  StrSlice value = range_pos_slice(&pos, lex->src);
-  Tok tok = make_tok(kTokWhitespace, value, pos);
+  Span span = make_span(beg, end);
+  StrSlice value = span_slice(&span, lex->src);
+  Tok tok = make_tok(kTokWhitespace, value, span);
   tok_list_push(lex->list, &tok);
   return kLexNoErr;
 }
@@ -279,8 +279,8 @@ lex_handle_ident(Lex* lex)
   }
   Pos end = lex_pos_cur(lex);
 
-  RangePos pos = make_range_pos(beg, end);
-  StrSlice value = range_pos_slice(&pos, lex->src);
+  Span pos = make_span(beg, end);
+  StrSlice value = span_slice(&pos, lex->src);
   TokKwKind kw_kind;
   bool is_kw = tok_kw_kind_get(&value, &kw_kind);
   Tok tok = make_tok(is_kw ? kTokKeyword : kTokIdent, value, pos);
@@ -312,9 +312,43 @@ lex_handle_num(Lex* lex)
 
   // TODO(Filip Björklund): Handle float + int
 
-  RangePos pos = make_range_pos(beg, end);
-  StrSlice value = range_pos_slice(&pos, lex->src);
-  Tok tok = make_tok(kTokInt, value, pos);
+  Span span = make_span(beg, end);
+  StrSlice value = span_slice(&span, lex->src);
+  Tok tok = make_tok(kTokInt, value, span);
+  tok_list_push(lex->list, &tok);
+  return kLexNoErr;
+}
+// -------------------------------------------------------------------------- //
+
+LexErr
+lex_handle_str(Lex* lex)
+{
+  u32 code_point = lex_peek(lex);
+  if (code_point != '\"') {
+    return kLexNoErr;
+  }
+  Pos beg = lex_pos_cur(lex);
+  lex_next(lex);
+
+  bool found_end = false;
+  bool escaped = false;
+  while ((code_point = lex_peek(lex)) != kInvalidCodepoint) {
+    lex_next(lex);
+    if (code_point == '\"' && !escaped) {
+      found_end = true;
+      break;
+    }
+    escaped = code_point == '\\';
+  }
+  Pos end = lex_pos_cur(lex);
+
+  if (!found_end) {
+    return kLexNonTermStr;
+  }
+
+  Span span = make_span(beg, end);
+  StrSlice value = span_slice(&span, lex->src);
+  Tok tok = make_tok(kTokStr, value, span);
   tok_list_push(lex->list, &tok);
   return kLexNoErr;
 }
@@ -333,9 +367,9 @@ lex_handle_special(Lex* lex)
   lex_next(lex);
   Pos end = lex_pos_cur(lex);
 
-  RangePos pos = make_range_pos(beg, end);
-  StrSlice value = range_pos_slice(&pos, lex->src);
-  Tok tok = make_tok(kTokSym, value, pos);
+  Span span = make_span(beg, end);
+  StrSlice value = span_slice(&span, lex->src);
+  Tok tok = make_tok(kTokSym, value, span);
   tok_list_push(lex->list, &tok);
   return kLexNoErr;
 }
@@ -392,6 +426,9 @@ tok_list_lex(const Str* src, TokList* p_list)
     TOK_LIST_CHECK_ERR();
 
     err = lex_handle_num(&lex);
+    TOK_LIST_CHECK_ERR();
+
+    err = lex_handle_str(&lex);
     TOK_LIST_CHECK_ERR();
 
     err = lex_handle_special(&lex);
@@ -454,10 +491,10 @@ tok_list_dump(const TokList* list)
     printf("  %s ('%s') @{%u:%u -> %u:%u}\n",
            str_cstr(&kind_name),
            str_cstr(&value),
-           tok->pos.beg.line + 1,
-           tok->pos.beg.col + 1,
-           tok->pos.end.line + 1,
-           tok->pos.end.col + 1);
+           tok->span.beg.line + 1,
+           tok->span.beg.col + 1,
+           tok->span.end.line + 1,
+           tok->span.end.col + 1);
     release_str(&value);
   }
 }

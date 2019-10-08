@@ -25,7 +25,7 @@
 
 #include "common.h"
 #include "str.h"
-#include "pos.h"
+#include "span.h"
 
 // ========================================================================== //
 // LexErr
@@ -138,8 +138,8 @@ typedef struct Tok
   TokKind kind;
   /* Value slice from source */
   StrSlice value;
-  /* Pos */
-  RangePos pos;
+  /* Span */
+  Span span;
   /* Extra data */
   union
   {
@@ -152,7 +152,7 @@ typedef struct Tok
 
 /* Make token */
 Tok
-make_tok(TokKind kind, StrSlice value, RangePos pos);
+make_tok(TokKind kind, StrSlice value, Span span);
 
 // ========================================================================== //
 // TokList

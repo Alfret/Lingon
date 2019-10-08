@@ -24,11 +24,15 @@ set(SOURCES
         src/common.c
         src/file.c
         src/lex.c
+        src/lsp.c
         src/main.c
         src/parser.c
-        src/pos.c
+        src/span.c
         src/str.c
+        src/type.c
         deps/alf/alf_unicode.c
+        deps/chif/chif_net.c
+        deps/cjson/cJSON.c
         )
 
 ## ========================================================================== ##
@@ -44,6 +48,8 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE
         src
         deps/alf
+        deps/chif
+        deps/cjson
         deps/mimalloc/include
         ${LLVM_INCLUDE_DIRS}
         )

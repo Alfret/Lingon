@@ -79,7 +79,7 @@ parse_prog(Parser* parser)
       Ast ast_fn = parse_fn(parser);
       ast_prog_add_fn(&ast_prog, &ast_fn);
     } else {
-      panic(&LN_CSTR("Unexpected token found (%s)\n"), tok_kind_str(tok->kind));
+      panic(make_str("Unexpected token found (%s)\n"), tok_kind_str(tok->kind));
     }
   }
 
@@ -95,17 +95,27 @@ parse_fn(Parser* parser)
 {
   // 'fn' keyword
   if (!parse_expect_kw_kind(parser, kTokKwFn)) {
-    panic(&LN_CSTR("ICE: Trying to parse function at wrong time"));
+    panic(make_str("ICE: Trying to parse function at wrong time"));
   }
-  parser_next(parser);
+  Span beg = parser_span_cur(parser);
+  parser_next(parser, false);
+  parser_consume_whitespace(parser);
 
   // Name
   if (!parse_expect_kind(parser, kTokIdent)) {
+    panic(make_str("ICE: Expected identifier for function name"));
   }
-  const Tok* tok = parser_next_skip_whitespace(parser);
-  LN_UNUSED(tok);
+  const Tok* tok = parser_next(parser, false);
 
-  return make_ast_fn(make_str_slice(&LN_CSTR(""), 0, 0));
+  // Param list
+
+  // Ret
+
+  // Done
+  Span end = tok->span;
+  Ast ast = make_ast_fn(make_str_slice(&make_str(""), 0, 0));
+  ast.span = span_join(&beg, &end);
+  return ast;
 }
 
 // ========================================================================== //
@@ -114,6 +124,10 @@ parse_fn(Parser* parser)
 
 // ========================================================================== //
 // Expr
+// ========================================================================== //
+
+// ========================================================================== //
+// Type
 // ========================================================================== //
 
 // ========================================================================== //
@@ -139,24 +153,34 @@ release_parser(Parser* parser)
 // -------------------------------------------------------------------------- //
 
 const Tok*
-parser_next(Parser* parser)
+parser_next(Parser* parser, bool skip_leading_whitespace)
 {
-  return tok_iter_next(&parser->iter);
+  if (skip_leading_whitespace) {
+    const Tok* tok;
+    while ((tok = parser_peek(parser)) != NULL) {
+      if (tok->kind != kTokWhitespace) {
+        return parser_next(parser, false);
+      }
+      parser_next(parser, false);
+    }
+    return NULL;
+  } else {
+    return tok_iter_next(&parser->iter);
+  }
 }
 
 // -------------------------------------------------------------------------- //
 
-const Tok*
-parser_next_skip_whitespace(Parser* parser)
+void
+parser_consume_whitespace(Parser* parser)
 {
   const Tok* tok;
   while ((tok = parser_peek(parser)) != NULL) {
     if (tok->kind != kTokWhitespace) {
-      return parser_next(parser);
+      return;
     }
-    parser_next(parser);
+    parser_next(parser, false);
   }
-  return NULL;
 }
 
 // -------------------------------------------------------------------------- //
@@ -169,11 +193,11 @@ parser_peek(const Parser* parser)
 
 // -------------------------------------------------------------------------- //
 
-RangePos
-parser_pos_cur(const Parser* parser)
+Span
+parser_span_cur(const Parser* parser)
 {
   const Tok* tok = parser_peek(parser);
-  return tok->pos;
+  return tok->span;
 }
 
 // -------------------------------------------------------------------------- //
