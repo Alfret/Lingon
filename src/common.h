@@ -51,6 +51,8 @@ typedef struct Str Str;
     name = value                                                               \
   };
 
+#define LN_CLAMP(a, min, max) (a) < min ? min : ((a) > max ? max : (a))
+
 #define kLnMinAlign sizeof(void*)
 
 // ========================================================================== //

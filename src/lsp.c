@@ -172,7 +172,8 @@ jrpc_handle_hover(Lsp* lsp, cJSON* json)
   LN_UNUSED(json);
 
   // Hover message
-  Str hover = make_str("No information available");
+  // Str hover = make_str("No information available");
+  Str hover = make_str("Hej Christoffer");
 
   // Determine id
   cJSON* req_id_json = cJSON_GetObjectItemCaseSensitive(json, "id");

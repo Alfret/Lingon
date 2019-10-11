@@ -46,6 +46,20 @@ bool
 cstr_eq(const char* str0, const char* str1);
 
 // ========================================================================== //
+// Unicode
+// ========================================================================== //
+
+/* Gets unicode code-point width */
+u32
+unicode_width(u32 code_point);
+
+// -------------------------------------------------------------------------- //
+
+/* Encode code-point. Returns encoded width in 'p_width' */
+bool
+unicode_encode(char* buf, u32 off, u32 code_point, u32* p_width);
+
+// ========================================================================== //
 // Str
 // ========================================================================== //
 
@@ -115,9 +129,27 @@ str_eq(const Str* s0, const Str* s1);
 char*
 str_write_cp(char buf[5], u32 cp);
 
+// -------------------------------------------------------------------------- //
+
+/* Calculate offset from line and column */
+bool
+str_line_col_to_off(const Str* str, u32 line, u32 col, u32* p_off);
+
+// -------------------------------------------------------------------------- //
+
+/* Calculate line and column from offset */
+bool
+str_off_to_line_col(const Str* str, u32 off, u32* p_line, u32* p_col);
+
 // ========================================================================== //
 // StrSlice
 // ========================================================================== //
+
+#define str_sl "%.*s"
+
+#define str_slice_print(slice) (slice)->count, (char*)(slice)->ptr
+
+// -------------------------------------------------------------------------- //
 
 /* String slice */
 typedef struct StrSlice
@@ -153,6 +185,11 @@ str_slice_eq(const StrSlice* slice0, const StrSlice* slice1);
 bool
 str_slice_eq_str(const StrSlice* slice, const Str* str);
 
+// -------------------------------------------------------------------------- //
+
+bool
+str_slice_is_null(const StrSlice* slice);
+
 // ========================================================================== //
 // StrIter
 // ========================================================================== //
@@ -186,5 +223,53 @@ str_iter_next(StrIter* iter);
 
 u32
 str_iter_peek(const StrIter* iter);
+
+// ========================================================================== //
+// StrList
+// ========================================================================== //
+
+/* Str list */
+typedef struct StrList
+{
+  Str* buf;
+  u32 len;
+  u32 cap;
+} StrList;
+
+// -------------------------------------------------------------------------- //
+
+/* Make empty str list */
+StrList
+make_str_list(u32 cap);
+
+// -------------------------------------------------------------------------- //
+
+/* Release str list */
+void
+release_str_list(StrList* list);
+
+// -------------------------------------------------------------------------- //
+
+/* Append to str list */
+void
+str_list_append(StrList* list, const Str* str);
+
+// -------------------------------------------------------------------------- //
+
+/* Remove from str list */
+Str
+str_list_remove(StrList* list, u32 index);
+
+// -------------------------------------------------------------------------- //
+
+/* Get object from str list */
+const Str*
+str_list_get(const StrList* list, u32 index);
+
+// -------------------------------------------------------------------------- //
+
+/* Reserve capacity in str list */
+void
+str_list_reserve(StrList* list, u32 cap);
 
 #endif // LN_STR_H

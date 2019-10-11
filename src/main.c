@@ -30,100 +30,9 @@
 #include "parser.h"
 #include "lsp.h"
 #include "type.h"
-
-// ========================================================================== //
-// ArgParse
-// ========================================================================== //
-
-typedef struct ArgParse
-{
-  /* Output file name */
-  Str output;
-  Str input; // Only temporary
-  /* Show help */
-  bool help;
-  /* Verbose output */
-  bool verbose;
-  /* Lsp mode */
-  bool lsp;
-  /* Lsp data */
-  struct
-  {
-    Str type;
-    Str host;
-    Str port;
-  } lsp_data;
-  /* Debug: Dump tokens */
-  bool dbg_dump_tokens;
-  /* Debug: Dump ast */
-  bool dbg_dump_ast;
-} ArgParse;
-
-// -------------------------------------------------------------------------- //
-
-ArgParse
-make_arg_parse(int argc, char** argv)
-{
-  ArgParse args = {};
-  for (int i = 1; i < argc; i++) {
-    if (cstr_eq(argv[i], "--help") || cstr_eq(argv[i], "-h")) {
-      args.help = true;
-    } else if (cstr_eq(argv[i], "--output") || cstr_eq(argv[i], "-o")) {
-      if (argc < i + 2) {
-        printf(
-          "Missing arguments to '%s'. Please specify an output file path\n",
-          argv[i]);
-        exit(-1);
-      }
-      args.output = make_str_copy(argv[++i]);
-    } else if (cstr_eq(argv[i], "--verbose") || cstr_eq(argv[i], "-v")) {
-      args.verbose = true;
-    } else if (cstr_eq(argv[i], "--lsp")) {
-      if (argc < i + 4) {
-        printf("Missing arguments to '--lsp'. Please specify an 'type' (tcp | "
-               "ipc), 'host' and 'port'\n");
-        exit(-2);
-      }
-      args.lsp = true;
-      if (argv[i + 1][0] == '-') {
-        printf("Missing argument 'type' to '--lsp', please specify either "
-               "'tcp' or 'ipc'\n");
-        exit(-3);
-      }
-      args.lsp_data.type = make_str_copy(argv[++i]);
-      if (argv[i + 1][0] == '-') {
-        printf("Missing argument 'host' to '--lsp', please specify the host "
-               "address\n");
-        exit(-4);
-      }
-      args.lsp_data.host = make_str_copy(argv[++i]);
-      if (argv[i + 1][0] == '-') {
-        printf("Missing argument 'port' to '--lsp', please the port\n");
-        exit(-5);
-      }
-      args.lsp_data.port = make_str_copy(argv[++i]);
-    } else if (cstr_eq(argv[i], "--dbg-dump-tok")) {
-      args.dbg_dump_tokens = true;
-    } else if (cstr_eq(argv[i], "--dbg-dump-ast")) {
-      args.dbg_dump_ast = true;
-    } else {
-      args.input = make_str_copy(argv[i]);
-    }
-  }
-  return args;
-}
-
-// -------------------------------------------------------------------------- //
-
-void
-release_arg_parse(ArgParse* args)
-{
-  release_str(&args->lsp_data.port);
-  release_str(&args->lsp_data.host);
-  release_str(&args->lsp_data.type);
-  release_str(&args->output);
-  release_str(&args->input);
-}
+#include "args.h"
+#include "con.h"
+#include "src.h"
 
 // ========================================================================== //
 // Main
@@ -132,14 +41,99 @@ release_arg_parse(ArgParse* args)
 void
 print_help()
 {
-  printf("--help, -h                 | Print this help message\n"
-         "--output, -o <path>        | Specify the output file\n"
-         "--verbose, -v              | Verbose output\n"
-         "--lsp <type> <host> <port> | Start the compiler in LSP server mode.\n"
-         "                           | This will let the compiler start\n"
-         "                           | serving request from an LSP client\n"
-         "--dbg-dump-tok             | Dump the tokens after lexical analysis\n"
-         "--dbg-dump-ast             | Dump ast after syntax analysis\n");
+  printf(
+    "--help, -h                 | Print this help message\n"
+    "--output, -o <path>        | Specify the output file\n"
+    "--verbose, -v              | Verbose output\n"
+    "--lsp <type> <host> <port> | Start the compiler in LSP server mode. This\n"
+    "                           | will let the compiler start serving request\n"
+    "                           | from an LSP client\n"
+    "--dbg-dump-tok             | Dump the tokens after lexical analysis\n"
+    "--dbg-dump-ast             | Dump ast after syntax analysis\n"
+    "--dbg-dump-ir              | Dump IR after conversion to first stage IR,\n"
+    "                           | 'AIR' (Analysable IR).\n"
+    "--dbg-dump-ll              | Dump LLVM IR after conversion from the\n"
+    "\n");
+}
+
+// -------------------------------------------------------------------------- //
+
+int
+main_lsp(const Args* args)
+{
+  Lsp lsp = make_lsp();
+  lsp_connect(
+    &lsp, args->lsp_data.type, args->lsp_data.host, args->lsp_data.port);
+  LspErr err = lsp_run(&lsp);
+  Str err_str = lsp_err_str(err);
+  if (err != kLspNoErr) {
+    printf("LSP error (%s)\n", str_cstr(&err_str));
+    return -1;
+  }
+  lsp_disconnect(&lsp);
+  return 0;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+main_init()
+{
+  types_init();
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+main_cleanup()
+{
+  types_cleanup();
+  LN_CHECK_LEAK();
+}
+
+// -------------------------------------------------------------------------- //
+
+int
+main_compile_files(const Args* args)
+{
+  // Compile each file
+  for (u32 i = 0; i < args->input.len; i++) {
+    const Str* in = str_list_get(&args->input, i);
+    printf(con_col256(105) "Compiling:" con_col_reset() " %s\n", str_cstr(in));
+
+    // Lexical analysis
+    Src src;
+    SrcErr src_err = make_src(in, &src);
+    if (src_err != kSrcNoErr) {
+      printf("Fatal: Failed to create source '%s'\n", str_cstr(in));
+      exit(-1);
+    }
+
+    TokList tokens;
+    LexErr lex_err = tok_list_lex(&src, &tokens);
+    if (lex_err != kLexNoErr) {
+      printf("Lexical analysis failed\n");
+      return -1;
+    }
+
+    if (args->dbg_dump_tokens) {
+      tok_list_dump(&tokens);
+    }
+
+    // Syntax analysis
+    Parser parser = make_parser(&src, &tokens);
+    Ast* ast = parser_parse(&parser);
+    if (args->dbg_dump_ast) {
+      LN_UNUSED(ast);
+    }
+
+    // Release
+    release_ast(ast);
+    release_tok_list(&tokens);
+    release_src(&src);
+  }
+
+  return 0;
 }
 
 // -------------------------------------------------------------------------- //
@@ -153,63 +147,29 @@ main(int argc, char** argv)
     print_help();
     return 0;
   }
-  ArgParse args = make_arg_parse(argc, argv);
+  Args args;
+  make_args(argc, argv, &args);
   if (args.help) {
     print_help();
     exit(0);
   }
 
-  // Init system
-  types_init();
+  // Init
+  main_init();
 
   // LSP
   if (args.lsp) {
-    Lsp lsp = make_lsp();
-    lsp_connect(
-      &lsp, args.lsp_data.type, args.lsp_data.host, args.lsp_data.port);
-    LspErr err = lsp_run(&lsp);
-    Str err_str = lsp_err_str(err);
-    if (err != kLspNoErr) {
-      printf("LSP error (%s)\n", str_cstr(&err_str));
-      return -1;
-    }
-    lsp_disconnect(&lsp);
-    return 0;
+    printf("Starting the compiler in LSP mode");
+    int res = main_lsp(&args);
+    release_args(&args);
+    return res;
   }
 
-  // Lexical analysis
-  Str src;
-  FileErr file_err = read_file_str(&args.input, &src);
-  if (file_err != kFileNoErr) {
-    printf("Failed to open file '%s'\n", str_cstr(&args.input));
-    exit(-1);
-  }
-
-  TokList tokens;
-  LexErr err = tok_list_lex(&src, &tokens);
-  if (err != kLexNoErr) {
-    printf("Lexical analysis failed\n");
-    return -1;
-  }
-
-  if (args.dbg_dump_tokens) {
-    tok_list_dump(&tokens);
-  }
-
-  // Syntax analysis
-  /*Parser parser = make_parser(&tokens);
-  Ast ast = parser_parse(&parser);
-  if (args.dbg_dump_ast) {
-    LN_UNUSED(ast);
-  }*/
-
-  // Release
-  release_tok_list(&tokens);
-  release_str(&src);
-  release_arg_parse(&args);
+  // Compile files
+  main_compile_files(&args);
 
   // Cleanup
-  types_cleanup();
-  LN_CHECK_LEAK();
+  release_args(&args);
+  main_cleanup();
   return 0;
 }

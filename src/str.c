@@ -54,6 +54,24 @@ cstr_eq(const char* str0, const char* str1)
 }
 
 // ========================================================================== //
+// Unicode
+// ========================================================================== //
+
+u32
+unicode_width(u32 code_point)
+{
+  return alfUTF8CodepointWidth(code_point);
+}
+
+// -------------------------------------------------------------------------- //
+
+bool
+unicode_encode(char* buf, u32 off, u32 code_point, u32* p_width)
+{
+  return alfUTF8Encode((AlfChar8*)buf, off, code_point, p_width);
+}
+
+// ========================================================================== //
 // Str
 // ========================================================================== //
 
@@ -88,7 +106,7 @@ str_copy(const Str* str)
     return (Str){ .buf = NULL, .size = 0, .len = 0 };
   }
   buf[str->size] = 0;
-  memcpy(buf, str, str->size);
+  memcpy(buf, str->buf, str->size);
   return (Str){ .buf = buf, .size = str->size, .len = str->len };
 }
 
@@ -174,6 +192,54 @@ str_write_cp(char buf[5], u32 cp)
   return buf;
 }
 
+// -------------------------------------------------------------------------- //
+
+bool
+str_line_col_to_off(const Str* str, u32 line, u32 col, u32* p_off)
+{
+  *p_off = 0;
+
+  u32 _line = 0, _col = 0;
+  for (u32 i = 0; i < str->size; i++) {
+    if (_line == line && _col == col) {
+      *p_off = i;
+      return true;
+    }
+
+    _col++;
+    if (str->buf[i] == '\n') {
+      _line++;
+      _col = 0;
+    }
+  }
+  return false;
+}
+
+// -------------------------------------------------------------------------- //
+
+bool
+str_off_to_line_col(const Str* str, u32 off, u32* p_line, u32* p_col)
+{
+  *p_line = 0;
+  *p_col = 0;
+
+  u32 line = 0, col = 0;
+  for (u32 i = 0; i < str->size; i++) {
+    if (off == i) {
+      *p_line = line;
+      *p_col = col;
+      return true;
+    }
+
+    col++;
+    if (str->buf[i] == '\n') {
+      line++;
+      col = 0;
+    }
+  }
+  return false;
+}
+
 // ========================================================================== //
 // StrSlice
 // ========================================================================== //
@@ -238,6 +304,14 @@ str_slice_eq_str(const StrSlice* slice, const Str* str)
   return memcmp(slice->ptr, str->buf, slice->count) == 0;
 }
 
+// -------------------------------------------------------------------------- //
+
+bool
+str_slice_is_null(const StrSlice* slice)
+{
+  return slice->ptr == NULL;
+}
+
 // ========================================================================== //
 // StrIter
 // ========================================================================== //
@@ -284,4 +358,81 @@ str_iter_peek(const StrIter* iter)
     return kInvalidCodepoint;
   }
   return cp;
+}
+
+// ========================================================================== //
+// StrList
+// ========================================================================== //
+
+/* Make empty str list */
+StrList
+make_str_list(u32 cap)
+{
+  u32 _cap = cap ? cap : 10;
+  Str* buf = alloc(sizeof(Str) * _cap, kLnMinAlign);
+  if (!buf) {
+    return (StrList){ .buf = 0, .len = 0, .cap = 0 };
+  }
+  return (StrList){ .buf = buf, .len = 0, .cap = _cap };
+}
+
+// -------------------------------------------------------------------------- //
+
+/* Release str list */
+void
+release_str_list(StrList* list)
+{
+  release(list->buf);
+}
+
+// -------------------------------------------------------------------------- //
+
+/* Append to str list */
+void
+str_list_append(StrList* list, const Str* str)
+{
+  if (list->len >= list->cap) {
+    str_list_reserve(list, list->cap * 2);
+  }
+  memcpy(list->buf + list->len++, str, sizeof(Str));
+}
+
+// -------------------------------------------------------------------------- //
+
+/* Remove from str list */
+Str
+str_list_remove(StrList* list, u32 index)
+{
+  assrt(index < list->len, make_str("Index out of bounds (%u)"), index);
+  Str str = list->buf[index];
+  memmove(list->buf + index,
+          list->buf + index + 1,
+          sizeof(Str) * (list->len - index - 1));
+  return str;
+}
+
+// -------------------------------------------------------------------------- //
+
+/* Get object from str list */
+const Str*
+str_list_get(const StrList* list, u32 index)
+{
+  assrt(index < list->len, make_str("Index out of bounds (%u)"), index);
+  return &list->buf[index];
+}
+
+// -------------------------------------------------------------------------- //
+
+/* Reserve capacity in str list */
+void
+str_list_reserve(StrList* list, u32 cap)
+{
+  if (list->cap > cap) {
+    return;
+  }
+  Str* buf = alloc(sizeof(Str) * cap, kLnMinAlign);
+  memcpy(buf, list->buf, sizeof(Str) * list->len);
+  release(list->buf);
+  list->buf = buf;
+  list->cap = cap;
 }

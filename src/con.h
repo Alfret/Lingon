@@ -20,191 +20,111 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef LN_TYPE_H
-#define LN_TYPE_H
+#ifndef LN_CONSOLE_H
+#define LN_CONSOLE_H
+
+#include <stdarg.h>
 
 #include "common.h"
 #include "str.h"
 
 // ========================================================================== //
-// TypeKind
+// Con
 // ========================================================================== //
 
-typedef enum TypeKind
+#define con_col16(val) "\033[" #val "m"
+
+// -------------------------------------------------------------------------- //
+
+#define con_col256(val) "\033[38:5:" #val "m"
+
+// -------------------------------------------------------------------------- //
+
+/* Reset color */
+#define con_col_reset() "\033[0m"
+
+// -------------------------------------------------------------------------- //
+
+#define con_col_ice con_col256(81)
+
+// -------------------------------------------------------------------------- //
+
+/* Print line */
+void
+con_cprintln(const char* fmt, ...);
+
+// -------------------------------------------------------------------------- //
+
+/* Print line */
+void
+con_cprintln_v(const char* fmt, va_list args);
+
+// -------------------------------------------------------------------------- //
+
+/* Print line */
+void
+con_println(const Str* fmt, ...);
+
+// -------------------------------------------------------------------------- //
+
+/* Print line */
+void
+con_println_v(const Str* fmt, va_list args);
+
+// ========================================================================== //
+// ProgBar
+// ========================================================================== //
+
+typedef struct ProgBar
 {
-  kTypeVoid,
+  Str fmt;
+  u32 cur;
+  u32 min;
+  u32 max;
+  u32 width;
+} ProgBar;
 
-  kTypeChar,
-  kTypeBool,
+// -------------------------------------------------------------------------- //
 
-  kTypeU8,
-  kTypeS8,
-  kTypeU16,
-  kTypeS16,
-  kTypeU32,
-  kTypeS32,
-  kTypeU64,
-  kTypeS64,
-
-  kTypeF32,
-  kTypeF64,
-
-  kTypeArray,
-  kTypePointer,
-  kTypeStruct,
-  kTypeEnum,
-  kTypeTrait,
-} TypeKind;
-
-// ========================================================================== //
-// Type
-// ========================================================================== //
-
-/* Type data union */
-typedef struct Type
-{
-  /* Kind */
-  TypeKind kind;
-  /* Data */
-  union
-  {
-    struct
-    {
-      /* Array type */
-      struct Type* type;
-      /* Length */
-      u32 len;
-    } array;
-    struct
-    {
-      /* Pointée type */
-      struct Type* type;
-    } pointer;
-    struct
-    {
-      u32 tmp;
-    } strct;
-    struct
-    {
-      u32 tmp;
-    } enuum;
-    struct
-    {
-      u32 tmp;
-    } trait;
-  };
-} Type;
+ProgBar
+make_prog_bar(u32 min, u32 max, u32 width);
 
 // -------------------------------------------------------------------------- //
 
 void
-types_init();
+release_prog_bar(ProgBar* bar);
 
 // -------------------------------------------------------------------------- //
 
 void
-types_cleanup();
+prog_bar_set_fmt(ProgBar* bar, const Str* fmt);
 
 // -------------------------------------------------------------------------- //
 
-/* Checks if type is a primitive type */
 bool
-type_is_primitive(Type* type);
+prog_bar_inc(ProgBar* bar);
 
 // -------------------------------------------------------------------------- //
 
-/* Returns a primitive type from the name */
-Type*
-get_type_from_name(const StrSlice* name);
+void
+prog_bar_draw(const ProgBar* bar, const Str* label);
 
 // -------------------------------------------------------------------------- //
 
-/* Gets an array type */
-Type*
-get_type_array(Type* elem_type, u32 len);
+/* Draw progress bar with formatted label  */
+void
+prog_bar_draw_fmt(const ProgBar* bar, const Str* fmt, ...);
 
 // -------------------------------------------------------------------------- //
 
-/* Gets a pointer type */
-Type*
-get_type_ptr(Type* pointee_type);
+/* Draw progress bar with formatted label  */
+void
+prog_bar_draw_fmt_v(const ProgBar* bar, const Str* fmt, va_list args);
 
 // -------------------------------------------------------------------------- //
 
-/* Gets 'void' type */
-Type*
-get_type_void();
+/* Finish drawing progress bar */
+void
+prog_bar_draw_finish(const ProgBar* bar);
 
-// -------------------------------------------------------------------------- //
-
-/* Gets 'char' type */
-Type*
-get_type_char();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'bool' type */
-Type*
-get_type_bool();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'u8' type */
-Type*
-get_type_u8();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 's8' type */
-Type*
-get_type_s8();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'u16' type */
-Type*
-get_type_u16();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 's16' type */
-Type*
-get_type_s16();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'u32' type */
-Type*
-get_type_u32();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 's32' type */
-Type*
-get_type_s32();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'u64' type */
-Type*
-get_type_u64();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 's64' type */
-Type*
-get_type_s64();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'f32' type */
-Type*
-get_type_f32();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'f64' type */
-Type*
-get_type_f64();
-
-#endif // LN_TYPE_H
+#endif // LN_CONSOLE_H

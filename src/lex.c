@@ -66,7 +66,6 @@ tok_kind_str(TokKind kind)
 bool
 tok_kw_kind_get(StrSlice* slice, TokKwKind* p_kind)
 {
-  LN_TOK_KW_EQ("alignof", kTokKwAlignOf)
   LN_TOK_KW_EQ("do", kTokKwDo)
   LN_TOK_KW_EQ("elif", kTokKwElif)
   LN_TOK_KW_EQ("else", kTokKwElse)
@@ -80,14 +79,57 @@ tok_kw_kind_get(StrSlice* slice, TokKwKind* p_kind)
   LN_TOK_KW_EQ("module", kTokKwModule)
   LN_TOK_KW_EQ("ret", kTokKwRet)
   LN_TOK_KW_EQ("self", kTokKwSelf)
-  LN_TOK_KW_EQ("sizeof", kTokKwSizeOf)
   LN_TOK_KW_EQ("struct", kTokKwStruct)
   LN_TOK_KW_EQ("trait", kTokKwTrait)
+  LN_TOK_KW_EQ("type", kTokKwType)
   LN_TOK_KW_EQ("while", kTokKwWhile)
   return false;
 }
 
 #undef LN_TOK_KW_EQ
+
+// ========================================================================== //
+// TokSymKind
+// ========================================================================== //
+
+#define LN_TOK_SYM_EQ(name, kind)                                              \
+  if (str_slice_eq_str(slice, &make_str(name))) {                              \
+    *p_kind = kind;                                                            \
+    return true;                                                               \
+  }
+
+bool
+tok_sym_kind_get(StrSlice* slice, TokSymKind* p_kind)
+{
+  LN_TOK_SYM_EQ("+", kTokSymAdd);
+  LN_TOK_SYM_EQ("-", kTokSymSub);
+  LN_TOK_SYM_EQ("*", kTokSymMul);
+  LN_TOK_SYM_EQ("/", kTokSymDiv);
+  LN_TOK_SYM_EQ("%", kTokSymMod);
+  LN_TOK_SYM_EQ("&", kTokSymAnd);
+  LN_TOK_SYM_EQ("|", kTokSymOr);
+  LN_TOK_SYM_EQ("^", kTokSymXor);
+  LN_TOK_SYM_EQ("~", kTokSymInvert);
+  LN_TOK_SYM_EQ("<", kTokSymLess);
+  LN_TOK_SYM_EQ(">", kTokSymGreater);
+  LN_TOK_SYM_EQ("=", kTokSymEqual);
+  LN_TOK_SYM_EQ("!", kTokSymExcl);
+  LN_TOK_SYM_EQ("?", kTokSymQmark);
+  LN_TOK_SYM_EQ("(", kTokSymLeftParen);
+  LN_TOK_SYM_EQ(")", kTokSymRightParen);
+  LN_TOK_SYM_EQ("[", kTokSymLeftBracket);
+  LN_TOK_SYM_EQ("]", kTokSymRightBracket);
+  LN_TOK_SYM_EQ("{", kTokSymLeftBrace);
+  LN_TOK_SYM_EQ("}", kTokSymRightBrace);
+  LN_TOK_SYM_EQ(":", kTokSymColon);
+  LN_TOK_SYM_EQ(";", kTokSymSemicolon);
+  LN_TOK_SYM_EQ(",", kTokSymComma);
+  LN_TOK_SYM_EQ("'", kTokSymApostrophe);
+  LN_TOK_SYM_EQ(".", kTokSymPeriod);
+  return false;
+}
+
+#undef LN_TOK_SYM_EQ
 
 // ========================================================================== //
 // Tok
@@ -97,6 +139,22 @@ Tok
 make_tok(TokKind kind, StrSlice value, Span span)
 {
   return (Tok){ .kind = kind, .value = value, .span = span };
+}
+
+// -------------------------------------------------------------------------- //
+
+bool
+tok_is_kw(const Tok* tok, TokKwKind kind)
+{
+  return tok->kind == kTokKeyword && tok->data.kw_kind == kind;
+}
+
+// -------------------------------------------------------------------------- //
+
+bool
+tok_is_sym(const Tok* tok, TokSymKind kind)
+{
+  return tok->kind == kTokSym && tok->data.sym_kind == kind;
 }
 
 // ========================================================================== //
@@ -109,7 +167,7 @@ typedef struct Lex
   /* List to fill */
   TokList* list;
   /* Src */
-  const Str* src;
+  const Src* src;
   /* Src iter */
   StrIter iter;
 
@@ -122,11 +180,13 @@ typedef struct Lex
 // -------------------------------------------------------------------------- //
 
 Lex
-make_lex(TokList* list, const Str* src)
+make_lex(TokList* list, const Src* src)
 {
-  return (Lex){
-    .list = list, .src = src, .iter = make_str_iter(src), .line = 0, .col = 0
-  };
+  return (Lex){ .list = list,
+                .src = src,
+                .iter = make_str_iter(&src->src),
+                .line = 0,
+                .col = 0 };
 }
 
 // -------------------------------------------------------------------------- //
@@ -159,6 +219,14 @@ Pos
 lex_pos_cur(const Lex* lex)
 {
   return make_pos(lex->iter.off, lex->line, lex->col);
+}
+
+// -------------------------------------------------------------------------- //
+
+StrSlice
+lex_span_slice(Lex* lex, const Span* span)
+{
+  return span_slice(span, &lex->src->src);
 }
 
 // -------------------------------------------------------------------------- //
@@ -240,7 +308,7 @@ lex_handle_whitespace(Lex* lex)
   }
 
   Span span = make_span(beg, end);
-  StrSlice value = span_slice(&span, lex->src);
+  StrSlice value = lex_span_slice(lex, &span);
   Tok tok = make_tok(kTokWhitespace, value, span);
   tok_list_push(lex->list, &tok);
   return kLexNoErr;
@@ -279,11 +347,11 @@ lex_handle_ident(Lex* lex)
   }
   Pos end = lex_pos_cur(lex);
 
-  Span pos = make_span(beg, end);
-  StrSlice value = span_slice(&pos, lex->src);
+  Span span = make_span(beg, end);
+  StrSlice value = lex_span_slice(lex, &span);
   TokKwKind kw_kind;
   bool is_kw = tok_kw_kind_get(&value, &kw_kind);
-  Tok tok = make_tok(is_kw ? kTokKeyword : kTokIdent, value, pos);
+  Tok tok = make_tok(is_kw ? kTokKeyword : kTokIdent, value, span);
   if (is_kw) {
     tok.data.kw_kind = kw_kind;
   }
@@ -313,7 +381,7 @@ lex_handle_num(Lex* lex)
   // TODO(Filip Björklund): Handle float + int
 
   Span span = make_span(beg, end);
-  StrSlice value = span_slice(&span, lex->src);
+  StrSlice value = lex_span_slice(lex, &span);
   Tok tok = make_tok(kTokInt, value, span);
   tok_list_push(lex->list, &tok);
   return kLexNoErr;
@@ -347,7 +415,7 @@ lex_handle_str(Lex* lex)
   }
 
   Span span = make_span(beg, end);
-  StrSlice value = span_slice(&span, lex->src);
+  StrSlice value = lex_span_slice(lex, &span);
   Tok tok = make_tok(kTokStr, value, span);
   tok_list_push(lex->list, &tok);
   return kLexNoErr;
@@ -368,8 +436,14 @@ lex_handle_special(Lex* lex)
   Pos end = lex_pos_cur(lex);
 
   Span span = make_span(beg, end);
-  StrSlice value = span_slice(&span, lex->src);
+  StrSlice value = lex_span_slice(lex, &span);
+  TokSymKind sym_kind;
+  bool is_sym = tok_sym_kind_get(&value, &sym_kind);
+  if (!is_sym) {
+    return kLexUnexpectedSym;
+  }
   Tok tok = make_tok(kTokSym, value, span);
+  tok.data.sym_kind = sym_kind;
   tok_list_push(lex->list, &tok);
   return kLexNoErr;
 }
@@ -405,7 +479,7 @@ release_tok_list(TokList* list)
   } while (0)
 
 LexErr
-tok_list_lex(const Str* src, TokList* p_list)
+tok_list_lex(const Src* src, TokList* p_list)
 {
   *p_list = (TokList){ .buf = NULL, .len = 0, .cap = 0 };
 

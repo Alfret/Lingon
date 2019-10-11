@@ -20,191 +20,178 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef LN_TYPE_H
-#define LN_TYPE_H
+#ifndef LN_ERR_H
+#define LN_ERR_H
 
-#include "common.h"
 #include "str.h"
+#include "span.h"
+#include "src.h"
 
 // ========================================================================== //
-// TypeKind
+// Err
 // ========================================================================== //
 
-typedef enum TypeKind
+/* Error */
+typedef struct Err
 {
-  kTypeVoid,
-
-  kTypeChar,
-  kTypeBool,
-
-  kTypeU8,
-  kTypeS8,
-  kTypeU16,
-  kTypeS16,
-  kTypeU32,
-  kTypeS32,
-  kTypeU64,
-  kTypeS64,
-
-  kTypeF32,
-  kTypeF64,
-
-  kTypeArray,
-  kTypePointer,
-  kTypeStruct,
-  kTypeEnum,
-  kTypeTrait,
-} TypeKind;
+  /* Message */
+  Str* msg;
+  /* Span */
+  Span span;
+} Err;
 
 // ========================================================================== //
-// Type
+// ErrList
 // ========================================================================== //
 
-/* Type data union */
-typedef struct Type
+/* Error list */
+typedef struct ErrList
 {
-  /* Kind */
-  TypeKind kind;
-  /* Data */
-  union
-  {
-    struct
-    {
-      /* Array type */
-      struct Type* type;
-      /* Length */
-      u32 len;
-    } array;
-    struct
-    {
-      /* Pointée type */
-      struct Type* type;
-    } pointer;
-    struct
-    {
-      u32 tmp;
-    } strct;
-    struct
-    {
-      u32 tmp;
-    } enuum;
-    struct
-    {
-      u32 tmp;
-    } trait;
-  };
-} Type;
+  /* Buffer */
+  Err* buf;
+  /* Length */
+  u32 len;
+  /* Capacity */
+  u32 cap;
+} ErrList;
+
+// -------------------------------------------------------------------------- //
+
+/* Make err list */
+ErrList
+make_err_list();
+
+// -------------------------------------------------------------------------- //
+
+/* Release err list */
+void
+release_err_list(ErrList* list);
+
+// -------------------------------------------------------------------------- //
+
+/* Append to err list */
+void
+err_list_append(ErrList* list, const Err* err);
+
+// -------------------------------------------------------------------------- //
+
+/* Remove from err list */
+Err
+err_list_remove(ErrList* list, u32 index);
+
+// -------------------------------------------------------------------------- //
+
+/* Get object from err list */
+const Err*
+err_list_get(ErrList* list, u32 index);
+
+// -------------------------------------------------------------------------- //
+
+/* Reserve capacity in err list */
+void
+err_list_reserve(ErrList* list, u32 cap);
+
+// ==========================================================================
+// // ErrNum
+// ==========================================================================
+// //
+
+typedef enum ErrNum
+{
+  kErrNumNone = 0,
+  kErrNumUnexpTok,
+} ErrNum;
+
+// -------------------------------------------------------------------------- //
+
+Str
+err_num_to_str(ErrNum num);
+
+// ========================================================================== //
+// ErrBuilder
+// ========================================================================== //
+
+typedef struct ErrBuilder
+{
+  /* Error number */
+  ErrNum err_num;
+  /* Entire source */
+  const Src* src;
+  /* Description */
+  const Str* err_desc;
+  /* Message */
+  const Str* err_msg;
+  /* Suggestion */
+  const Str* err_sugg;
+  /* Span */
+  const Span* span;
+  /* Num of lines before */
+  u32 line_before;
+  /* Num of lines before */
+  u32 line_after;
+  /* Pad lines before */
+  u32 pad_line_before;
+  /* Pad lines after */
+  u32 pad_line_after;
+} ErrBuilder;
+
+// -------------------------------------------------------------------------- //
+
+ErrBuilder
+make_err_builder(const Src* src);
 
 // -------------------------------------------------------------------------- //
 
 void
-types_init();
+err_builder_set_err_num(ErrBuilder* builder, ErrNum num);
 
 // -------------------------------------------------------------------------- //
 
 void
-types_cleanup();
+err_builder_set_desc(ErrBuilder* builder, const Str* desc);
 
 // -------------------------------------------------------------------------- //
 
-/* Checks if type is a primitive type */
-bool
-type_is_primitive(Type* type);
+void
+err_builder_set_msg(ErrBuilder* builder, const Str* msg);
 
 // -------------------------------------------------------------------------- //
 
-/* Returns a primitive type from the name */
-Type*
-get_type_from_name(const StrSlice* name);
+void
+err_builder_set_sugg(ErrBuilder* builder, const Str* sugg);
 
 // -------------------------------------------------------------------------- //
 
-/* Gets an array type */
-Type*
-get_type_array(Type* elem_type, u32 len);
+void
+err_builder_set_span(ErrBuilder* builder, const Span* span);
 
 // -------------------------------------------------------------------------- //
 
-/* Gets a pointer type */
-Type*
-get_type_ptr(Type* pointee_type);
+void
+err_builder_set_lines_before(ErrBuilder* builder, u32 lines);
 
 // -------------------------------------------------------------------------- //
 
-/* Gets 'void' type */
-Type*
-get_type_void();
+void
+err_builder_set_lines_after(ErrBuilder* builder, u32 lines);
 
 // -------------------------------------------------------------------------- //
 
-/* Gets 'char' type */
-Type*
-get_type_char();
+void
+err_builder_set_pad_lines_before(ErrBuilder* builder, u32 lines);
+// -------------------------------------------------------------------------- //
+
+void
+err_builder_set_pad_lines_after(ErrBuilder* builder, u32 lines);
 
 // -------------------------------------------------------------------------- //
 
-/* Gets 'bool' type */
-Type*
-get_type_bool();
+void
+err_builder_emit(const ErrBuilder* builder);
 
 // -------------------------------------------------------------------------- //
 
-/* Gets 'u8' type */
-Type*
-get_type_u8();
+Str
+err_pad_str(u32 code_point, u32 count);
 
-// -------------------------------------------------------------------------- //
-
-/* Gets 's8' type */
-Type*
-get_type_s8();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'u16' type */
-Type*
-get_type_u16();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 's16' type */
-Type*
-get_type_s16();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'u32' type */
-Type*
-get_type_u32();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 's32' type */
-Type*
-get_type_s32();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'u64' type */
-Type*
-get_type_u64();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 's64' type */
-Type*
-get_type_s64();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'f32' type */
-Type*
-get_type_f32();
-
-// -------------------------------------------------------------------------- //
-
-/* Gets 'f64' type */
-Type*
-get_type_f64();
-
-#endif // LN_TYPE_H
+#endif // LN_ERR_H

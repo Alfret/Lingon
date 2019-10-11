@@ -26,6 +26,7 @@
 #include "common.h"
 #include "str.h"
 #include "span.h"
+#include "src.h"
 
 // ========================================================================== //
 // LexErr
@@ -69,7 +70,6 @@ tok_kind_str(TokKind kind);
 
 typedef enum TokKwKind
 {
-  kTokKwAlignOf,
   kTokKwDo,
   kTokKwElif,
   kTokKwElse,
@@ -83,9 +83,9 @@ typedef enum TokKwKind
   kTokKwModule,
   kTokKwRet,
   kTokKwSelf,
-  kTokKwSizeOf,
   kTokKwStruct,
   kTokKwTrait,
+  kTokKwType,
   kTokKwWhile,
 } TokKwKind;
 
@@ -127,6 +127,11 @@ typedef enum TokSymKind
   kTokSymPeriod,
 } TokSymKind;
 
+// -------------------------------------------------------------------------- //
+
+bool
+tok_sym_kind_get(StrSlice* slice, TokSymKind* p_kind);
+
 // ========================================================================== //
 // Tok
 // ========================================================================== //
@@ -153,6 +158,18 @@ typedef struct Tok
 /* Make token */
 Tok
 make_tok(TokKind kind, StrSlice value, Span span);
+
+// -------------------------------------------------------------------------- //
+
+/* Check if token is of specified keyword type */
+bool
+tok_is_kw(const Tok* tok, TokKwKind kind);
+
+// -------------------------------------------------------------------------- //
+
+/* Check if token is of specified keyword type */
+bool
+tok_is_sym(const Tok* tok, TokSymKind kind);
 
 // ========================================================================== //
 // TokList
@@ -181,7 +198,7 @@ release_tok_list(TokList* list);
 
 /* Lexical analysis */
 LexErr
-tok_list_lex(const Str* src, TokList* p_list);
+tok_list_lex(const Src* src, TokList* p_list);
 
 // -------------------------------------------------------------------------- //
 

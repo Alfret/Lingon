@@ -46,9 +46,15 @@ make_pos(u32 off, u32 line, u32 col);
 
 // -------------------------------------------------------------------------- //
 
-/* Calculate line and column */
-Pos
-make_pos_calc(const Str* str, u32 off);
+/* Make pos from offset */
+bool
+make_pos_off(const Str* str, u32 off, Pos* p_pos);
+
+// -------------------------------------------------------------------------- //
+
+/* Make pos from line and column */
+bool
+make_pos_line_col(const Str* str, u32 line, u32 col, Pos* p_pos);
 
 // -------------------------------------------------------------------------- //
 
@@ -61,6 +67,11 @@ pos_is_before(const Pos* pos, const Pos* other);
 /* True if 'pos' is after 'other' */
 bool
 pos_is_after(const Pos* pos, const Pos* other);
+
+// -------------------------------------------------------------------------- //
+
+bool
+pos_eq(const Pos* pos0, const Pos* pos1);
 
 // ========================================================================== //
 // RangePos
@@ -81,9 +92,46 @@ make_span(Pos beg, Pos end);
 
 // -------------------------------------------------------------------------- //
 
+bool
+make_span_off(const Str* str, u32 off_beg, u32 off_end, Span* p_span);
+
+// -------------------------------------------------------------------------- //
+
+bool
+make_span_line_col(const Str* str,
+                   u32 line_beg,
+                   u32 col_beg,
+                   u32 line_end,
+                   u32 col_end,
+                   Span* p_span);
+
+// -------------------------------------------------------------------------- //
+
 /* Extract str slice from str and range pos */
 StrSlice
 span_slice(const Span* pos, const Str* src);
+
+// -------------------------------------------------------------------------- //
+
+StrSlice
+span_line(const Span* span, const Str* str);
+
+// -------------------------------------------------------------------------- //
+
+/* Return the n:th line before the one represented by the slice */
+StrSlice
+span_line_before(Span span, const Str* src, u32 n);
+
+// -------------------------------------------------------------------------- //
+
+/* Return the n:th line after the one represented by the slice */
+StrSlice
+span_line_after(Span span, const Str* src, u32 n);
+
+// -------------------------------------------------------------------------- //
+
+bool
+span_eq(const Span* span0, const Span* span1);
 
 // -------------------------------------------------------------------------- //
 

@@ -25,10 +25,41 @@
 
 #include "str.h"
 #include "span.h"
+#include "type.h"
 
 typedef struct AstProg AstProg;
 typedef struct AstFn AstFn;
+typedef struct AstParam AstParam;
+typedef struct AstBlock AstBlock;
+typedef struct AstLet AstLet;
+typedef struct AstRet AstRet;
+typedef struct AstType AstType;
 typedef struct Ast Ast;
+
+// ========================================================================== //
+// AstKind
+// ========================================================================== //
+
+/* Ast node kind */
+typedef enum AstKind
+{
+  /* Invalid ast type */
+  kAstInvalid = 0,
+  /* Program node */
+  kAstProg,
+  /* Function node */
+  kAstFn,
+  /* Param node */
+  kAstParam,
+  /* Block node */
+  kAstBlock,
+  /* Let node */
+  kAstLet,
+  /* Ret node */
+  kAstRet,
+  /* Tupe node */
+  kAstType
+} AstKind;
 
 // ========================================================================== //
 // AstList
@@ -38,7 +69,7 @@ typedef struct Ast Ast;
 typedef struct AstList
 {
   /* buffer */
-  Ast* buf;
+  Ast** buf;
   /* length */
   u32 len;
   /* capacity */
@@ -61,19 +92,19 @@ release_ast_list(AstList* list);
 
 /* Append to ast list */
 void
-ast_list_append(AstList* list, const Ast* ast);
+ast_list_append(AstList* list, Ast* ast);
 
 // -------------------------------------------------------------------------- //
 
 /* Remove from ast list */
-Ast
+Ast*
 ast_list_remove(AstList* list, u32 index);
 
 // -------------------------------------------------------------------------- //
 
 /* Get object from ast list */
-const Ast*
-ast_list_get(const AstList* list, u32 index);
+Ast*
+ast_list_get(AstList* list, u32 index);
 
 // -------------------------------------------------------------------------- //
 
@@ -94,7 +125,7 @@ typedef struct AstProg
 
 // -------------------------------------------------------------------------- //
 
-Ast
+Ast*
 make_ast_prog();
 
 // -------------------------------------------------------------------------- //
@@ -114,12 +145,19 @@ ast_prog_add_fn(Ast* ast_prog, Ast* ast_fn);
 /* Ast function node */
 typedef struct AstFn
 {
+  /* Name */
   StrSlice name;
+  /* List of parameter nodes (AstParam) */
+  AstList params;
+  /* Return type node (AstType) */
+  Ast* ret;
+  /* Body */
+  Ast* body;
 } AstFn;
 
 // -------------------------------------------------------------------------- //
 
-Ast
+Ast*
 make_ast_fn(StrSlice name);
 
 // -------------------------------------------------------------------------- //
@@ -127,22 +165,142 @@ make_ast_fn(StrSlice name);
 void
 release_ast_fn(Ast* ast);
 
+// -------------------------------------------------------------------------- //
+
+/* Add parameter to function (AstParam) */
+void
+ast_fn_add_param(Ast* ast_fn, Ast* ast_param);
+
+// -------------------------------------------------------------------------- //
+
+/* Set ret type of function (AstType) */
+void
+ast_fn_set_ret(Ast* ast_fn, Ast* ast_ret);
+
+// ========================================================================== //
+// AstParam
+// ========================================================================== //
+
+/* Param node */
+typedef struct AstParam
+{
+  /* Name */
+  StrSlice name;
+  /* Type (AstType) */
+  Ast* type;
+} AstParam;
+
+// -------------------------------------------------------------------------- //
+
+Ast*
+make_ast_param();
+
+// -------------------------------------------------------------------------- //
+
+void
+release_ast_param(Ast* ast);
+
+// ========================================================================== //
+// AstBlock
+// ========================================================================== //
+
+typedef struct AstBlock
+{
+  /* Statement list (AstStmt) */
+  AstList stmts;
+  /* Last expr in block*/
+  Ast* ret_expr;
+} AstBlock;
+
+// -------------------------------------------------------------------------- //
+
+Ast*
+make_ast_block();
+
+// -------------------------------------------------------------------------- //
+
+void
+release_ast_block(Ast* ast);
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_block_add_stmt(Ast* ast_block, Ast* ast_stmt);
+
+// ========================================================================== //
+// AstLet
+// ========================================================================== //
+
+typedef struct AstLet
+{
+  /* Name */
+  StrSlice name;
+  /* Assigned expr */
+  Ast* expr;
+} AstLet;
+
+// -------------------------------------------------------------------------- //
+
+/* Make 'let' node */
+Ast*
+make_ast_let(const StrSlice* name);
+
+// -------------------------------------------------------------------------- //
+
+/* Release 'let' node */
+void
+release_ast_let(Ast* ast_let);
+
+// -------------------------------------------------------------------------- //
+
+/* Set expr that is being assigned */
+void
+ast_let_set_assigned(Ast* ast_let, Ast* ast_expr);
+
+// ========================================================================== //
+// AstRet
+// ========================================================================== //
+
+typedef struct AstRet
+{
+  /* Ret expr */
+  Ast* expr;
+} AstRet;
+
+// -------------------------------------------------------------------------- //
+
+Ast*
+make_ast_ret(Ast* ast_expr);
+
+// -------------------------------------------------------------------------- //
+
+void
+release_ast_ret(Ast* ast_ret);
+
+// ========================================================================== //
+// AstType
+// ========================================================================== //
+
+/* Type node */
+typedef struct AstType
+{
+  /* Type */
+  Type* type;
+} AstType;
+
+// -------------------------------------------------------------------------- //
+
+Ast*
+make_ast_type(Type* type);
+
+// -------------------------------------------------------------------------- //
+
+void
+release_ast_type(Ast* ast);
+
 // ========================================================================== //
 // Ast
 // ========================================================================== //
-
-/* Ast node kind */
-typedef enum AstKind
-{
-  /* Invalid ast type */
-  kAstInvalid = 0,
-  /* Program node */
-  kAstProg,
-  /* Function node */
-  kAstFn
-} AstKind;
-
-// -------------------------------------------------------------------------- //
 
 /* Abstract syntax tree */
 typedef struct Ast
@@ -153,17 +311,26 @@ typedef struct Ast
   AstKind kind;
   union
   {
-    /* Program node */
+    /* Program */
     AstProg prog;
-    /* Function node */
+    /* Function */
     AstFn fn;
+    /* Param */
+    AstParam param;
+    /* Block */
+    AstBlock block;
+    /* Let */
+    AstLet let;
+    /* Ret */
+    AstRet ret;
+    /* Type */
+    AstType type;
   };
 } Ast;
 
 // -------------------------------------------------------------------------- //
 
-/* Make an invalid ast node */
-Ast
+Ast*
 make_ast_invalid();
 
 // -------------------------------------------------------------------------- //
@@ -171,5 +338,17 @@ make_ast_invalid();
 /* Recursively release ast */
 void
 release_ast(Ast* ast);
+
+// -------------------------------------------------------------------------- //
+
+/* Check if ast is stmt */
+bool
+ast_is_stmt(Ast* ast);
+
+// -------------------------------------------------------------------------- //
+
+/* Check if ast is expr */
+bool
+ast_is_expr(Ast* ast);
 
 #endif // LN_AST_H

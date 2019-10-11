@@ -20,39 +20,46 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "file.h"
+#ifndef LN_SRC_H
+#define LN_SRC_H
 
 // ========================================================================== //
-// File
+// Src
 // ========================================================================== //
 
-FileErr
-file_read_str(const Str* path, Str* p_str)
+/* Src err */
+typedef enum SrcErr
 {
-  *p_str = str_null();
+  kSrcNoErr,
+  kSrcFileNotFound,
+} SrcErr;
 
-  FILE* file = fopen(str_cstr(path), "r");
-  if (!file) {
-    return kFileNotFound;
-  }
+// -------------------------------------------------------------------------- //
 
-  fseek(file, 0, SEEK_END);
-  long size = ftell(file);
-  fseek(file, 0, SEEK_SET);
+/* Src */
+typedef struct Src
+{
+  /* Name */
+  Str name;
+  /* Source code text */
+  Str src;
+} Src;
 
-  u8* buf = alloc(size + 1, kLnMinAlign);
-  if (!buf) {
-    return kFileOtherErr;
-  }
-  fread(buf, 1, size, file);
-  if (ferror(file)) {
-    release(buf);
-    return kFileReadErr;
-  }
+// -------------------------------------------------------------------------- //
 
-  *p_str = (Str){ .buf = buf, .size = size, .len = cstr_len((char*)buf) };
-  return kFileNoErr;
-}
+SrcErr
+make_src(const Str* path, Src* p_src);
+
+// -------------------------------------------------------------------------- //
+
+/* Make source from existing source string. Ownership is taken of source, not
+ * name */
+Src
+make_src_str(const Str* name, Str src);
+
+// -------------------------------------------------------------------------- //
+
+void
+release_src(Src* src);
+
+#endif // LN_SRC_H

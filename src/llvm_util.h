@@ -20,39 +20,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef LN_LLVM_UTIL_H
+#define LN_LLVM_UTIL_H
 
-#include "file.h"
+#include <llvm-c/Types.h>
+
+#include "type.h"
 
 // ========================================================================== //
-// File
+// LLVMUtil
 // ========================================================================== //
 
-FileErr
-file_read_str(const Str* path, Str* p_str)
-{
-  *p_str = str_null();
+LLVMTypeRef
+to_llvm_type(Type* type);
 
-  FILE* file = fopen(str_cstr(path), "r");
-  if (!file) {
-    return kFileNotFound;
-  }
-
-  fseek(file, 0, SEEK_END);
-  long size = ftell(file);
-  fseek(file, 0, SEEK_SET);
-
-  u8* buf = alloc(size + 1, kLnMinAlign);
-  if (!buf) {
-    return kFileOtherErr;
-  }
-  fread(buf, 1, size, file);
-  if (ferror(file)) {
-    release(buf);
-    return kFileReadErr;
-  }
-
-  *p_str = (Str){ .buf = buf, .size = size, .len = cstr_len((char*)buf) };
-  return kFileNoErr;
-}
+#endif // LN_LLVM_UTIL_H

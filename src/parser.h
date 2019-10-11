@@ -25,6 +25,7 @@
 
 #include "lex.h"
 #include "ast.h"
+#include "src.h"
 
 // ========================================================================== //
 // Parser
@@ -42,6 +43,8 @@ typedef enum ParseErr
 /* Parser */
 typedef struct Parser
 {
+  /* Source */
+  const Src* src;
   /* Token iterator */
   TokIter iter;
 } Parser;
@@ -49,7 +52,7 @@ typedef struct Parser
 // -------------------------------------------------------------------------- //
 
 Parser
-make_parser(const TokList* toks);
+make_parser(const Src* src, const TokList* toks);
 
 // -------------------------------------------------------------------------- //
 
@@ -79,7 +82,7 @@ parser_span_cur(const Parser* parser);
 
 // -------------------------------------------------------------------------- //
 
-Ast
+Ast*
 parser_parse(Parser* parser);
 
 #endif // LN_PARSER_H

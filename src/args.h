@@ -20,39 +20,49 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef LN_ARGS_H
+#define LN_ARGS_H
 
-#include "file.h"
+#include "common.h"
+#include "str.h"
 
 // ========================================================================== //
-// File
+// Args
 // ========================================================================== //
 
-FileErr
-file_read_str(const Str* path, Str* p_str)
+typedef struct Args
 {
-  *p_str = str_null();
+  /* Output file name */
+  Str output;
+  /* Input file names */
+  StrList input;
+  /* Show help */
+  bool help;
+  /* Verbose output */
+  bool verbose;
+  /* Lsp mode */
+  bool lsp;
+  /* Lsp data */
+  struct
+  {
+    Str type;
+    Str host;
+    Str port;
+  } lsp_data;
+  /* Debug: Dump tokens */
+  bool dbg_dump_tokens;
+  /* Debug: Dump ast */
+  bool dbg_dump_ast;
+} Args;
 
-  FILE* file = fopen(str_cstr(path), "r");
-  if (!file) {
-    return kFileNotFound;
-  }
+// -------------------------------------------------------------------------- //
 
-  fseek(file, 0, SEEK_END);
-  long size = ftell(file);
-  fseek(file, 0, SEEK_SET);
+void
+make_args(int argc, char** argv, Args* p_args);
 
-  u8* buf = alloc(size + 1, kLnMinAlign);
-  if (!buf) {
-    return kFileOtherErr;
-  }
-  fread(buf, 1, size, file);
-  if (ferror(file)) {
-    release(buf);
-    return kFileReadErr;
-  }
+// -------------------------------------------------------------------------- //
 
-  *p_str = (Str){ .buf = buf, .size = size, .len = cstr_len((char*)buf) };
-  return kFileNoErr;
-}
+void
+release_args(Args* p_args);
+
+#endif // LN_ARGS_H

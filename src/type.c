@@ -98,6 +98,8 @@ static TypeList s_type_list;
 
 // -------------------------------------------------------------------------- //
 
+static Type* s_type_void;
+
 static Type* s_type_char;
 static Type* s_type_bool;
 
@@ -127,6 +129,7 @@ types_init()
   s_type_list = make_type_list();
 
   Type type;
+  LN_TYPE_LIST_ADD(s_type_void, kTypeVoid);
   LN_TYPE_LIST_ADD(s_type_char, kTypeChar);
   LN_TYPE_LIST_ADD(s_type_bool, kTypeBool);
   LN_TYPE_LIST_ADD(s_type_u8, kTypeU8);
@@ -150,13 +153,61 @@ types_cleanup()
 {
   assrt(s_type_list.buf != NULL,
         make_str("Cannot cleanup types without first initializing them"));
+  for (u32 i = 0; i < s_type_list.len; i++) {
+    Type* type = type_list_get(&s_type_list, i);
+    if (type->kind == kTypeStruct) {
+      // TODO(Filip Björklund): Free field type list
+    }
+  }
   release_type_list(&s_type_list);
 }
 
 // -------------------------------------------------------------------------- //
 
+bool
+type_is_primitive(Type* type)
+{
+  return type->kind == kTypeVoid || type->kind == kTypeChar ||
+         type->kind == kTypeBool || type->kind == kTypeU8 ||
+         type->kind == kTypeS8 || type->kind == kTypeU16 ||
+         type->kind == kTypeS16 || type->kind == kTypeU32 ||
+         type->kind == kTypeS32 || type->kind == kTypeU64 ||
+         type->kind == kTypeS64 || type->kind == kTypeF32 ||
+         type->kind == kTypeF64;
+}
+
+// -------------------------------------------------------------------------- //
+
+#define LN_TYPE_FROM_NAME_CASE(val, typ)                                       \
+  if (str_slice_eq_str(name, &make_str(val))) {                                \
+    return typ;                                                                \
+  }
+
 Type*
-get_array_type(Type* elem_type, u32 len)
+get_type_from_name(const StrSlice* name)
+{
+  LN_TYPE_FROM_NAME_CASE("void", get_type_void());
+  LN_TYPE_FROM_NAME_CASE("char", get_type_char());
+  LN_TYPE_FROM_NAME_CASE("bool", get_type_bool());
+  LN_TYPE_FROM_NAME_CASE("u8", get_type_u8());
+  LN_TYPE_FROM_NAME_CASE("s8", get_type_s8());
+  LN_TYPE_FROM_NAME_CASE("u16", get_type_u16());
+  LN_TYPE_FROM_NAME_CASE("s16", get_type_s16());
+  LN_TYPE_FROM_NAME_CASE("u32", get_type_u32());
+  LN_TYPE_FROM_NAME_CASE("s32", get_type_s32());
+  LN_TYPE_FROM_NAME_CASE("u64", get_type_u64());
+  LN_TYPE_FROM_NAME_CASE("s64", get_type_s64());
+  LN_TYPE_FROM_NAME_CASE("f32", get_type_f32());
+  LN_TYPE_FROM_NAME_CASE("f64", get_type_f64());
+  return NULL;
+}
+
+#undef LN_TYPE_FROM_NAME_CASE
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_array(Type* elem_type, u32 len)
 {
   for (u32 i = 0; i < s_type_list.len; i++) {
     Type* other = type_list_get(&s_type_list, i);
@@ -174,7 +225,7 @@ get_array_type(Type* elem_type, u32 len)
 // -------------------------------------------------------------------------- //
 
 Type*
-get_pointer_type(Type* pointee_type)
+get_type_ptr(Type* pointee_type)
 {
   for (u32 i = 0; i < s_type_list.len; i++) {
     Type* other = type_list_get(&s_type_list, i);
@@ -186,6 +237,14 @@ get_pointer_type(Type* pointee_type)
   Type type =
     (Type){ .kind = kTypePointer, .pointer = { .type = pointee_type } };
   return type_list_append(&s_type_list, &type);
+}
+
+// -------------------------------------------------------------------------- //
+
+Type*
+get_type_void()
+{
+  return s_type_void;
 }
 
 // -------------------------------------------------------------------------- //

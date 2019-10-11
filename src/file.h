@@ -42,9 +42,6 @@ typedef enum FileErr
 // ========================================================================== //
 
 FileErr
-read_file_str(const Str* path, Str* p_str);
-
-FileErr
-read_file_str2(const char* path, Str* p_str);
+file_read_str(const Str* path, Str* p_str);
 
 #endif // LN_FILE_H
