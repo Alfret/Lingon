@@ -47,6 +47,24 @@ cstr_len(const char* str)
 
 // -------------------------------------------------------------------------- //
 
+char*
+cstr_copy(const char* str)
+{
+  if (!str) {
+    return NULL;
+  }
+  u32 size = cstr_size(str);
+  char* buf = alloc(size + 1, kLnMinAlign);
+  if (!buf) {
+    return NULL;
+  }
+  buf[size] = 0;
+  memcpy(buf, str, size);
+  return buf;
+}
+
+// -------------------------------------------------------------------------- //
+
 bool
 cstr_eq(const char* str0, const char* str1)
 {

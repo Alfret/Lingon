@@ -33,6 +33,8 @@
 #include "args.h"
 #include "con.h"
 #include "src.h"
+#include "target.h"
+#include "llvm_util.h"
 
 // ========================================================================== //
 // Main
@@ -44,6 +46,9 @@ print_help()
   printf(
     "--help, -h                 | Print this help message\n"
     "--output, -o <path>        | Specify the output file\n"
+    "--target, -t <arch>        | Specify target architecture for\n"
+    "                           | compilation. Only specify this if you are\n"
+    "                           | doing cross-compilation\n"
     "--verbose, -v              | Verbose output\n"
     "--lsp <type> <host> <port> | Start the compiler in LSP server mode. This\n"
     "                           | will let the compiler start serving request\n"
@@ -51,7 +56,7 @@ print_help()
     "--dbg-dump-tok             | Dump the tokens after lexical analysis\n"
     "--dbg-dump-ast             | Dump ast after syntax analysis\n"
     "--dbg-dump-ir              | Dump IR after conversion to first stage IR,\n"
-    "                           | 'AIR' (Analysable IR).\n"
+    "                           | 'MIR' (Mid-level IR).\n"
     "--dbg-dump-ll              | Dump LLVM IR after conversion from the\n"
     "\n");
 }
@@ -79,6 +84,7 @@ main_lsp(const Args* args)
 void
 main_init()
 {
+  llvm_init();
   types_init();
 }
 
@@ -88,6 +94,7 @@ void
 main_cleanup()
 {
   types_cleanup();
+  llvm_cleanup();
   LN_CHECK_LEAK();
 }
 
@@ -101,7 +108,15 @@ main_compile_files(const Args* args)
     const Str* in = str_list_get(&args->input, i);
     printf(con_col256(105) "Compiling:" con_col_reset " %s\n", str_cstr(in));
 
-    // Lexical analysis
+    // Create target machine
+    Target target;
+    TargetErr target_err = make_target(&args->target, &target);
+    if (target_err != kTargetNoErr) {
+      printf("Fatal: Failed to create target machine\n");
+      exit(-1);
+    }
+
+    // Load source
     Src src;
     SrcErr src_err = make_src(in, &src);
     if (src_err != kSrcNoErr) {
@@ -109,13 +124,13 @@ main_compile_files(const Args* args)
       exit(-1);
     }
 
+    // Lexical analysis
     TokList tokens;
     LexErr lex_err = tok_list_lex(&src, &tokens);
     if (lex_err != kLexNoErr) {
       printf("Lexical analysis failed\n");
       return -1;
     }
-
     if (args->dbg_dump_tokens) {
       tok_list_dump(&tokens);
     }
@@ -126,10 +141,13 @@ main_compile_files(const Args* args)
     if (args->dbg_dump_ast) {
       LN_UNUSED(ast);
     }
-
     if (args->dbg_dump_ast) {
       ast_dump(ast);
     }
+
+    // MIR gen
+
+    // LLVM IR gen
 
     // Release
     release_ast(ast);

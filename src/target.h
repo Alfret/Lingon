@@ -20,51 +20,57 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef LN_ARGS_H
-#define LN_ARGS_H
+#ifndef LN_TARGET_H
+#define LN_TARGET_H
 
+#include "llvm_c_ext.h"
 #include "common.h"
-#include "str.h"
 
 // ========================================================================== //
-// Args
+// TargetErr
 // ========================================================================== //
 
-typedef struct Args
+typedef enum TargetErr
 {
-  /* Output file name */
-  Str output;
-  /* Input file names */
-  StrList input;
-  /* Target. Empty for native */
-  Str target;
-  /* Show help */
-  bool help;
-  /* Verbose output */
-  bool verbose;
-  /* Lsp mode */
-  bool lsp;
-  /* Lsp data */
-  struct
-  {
-    Str type;
-    Str host;
-    Str port;
-  } lsp_data;
-  /* Debug: Dump tokens */
-  bool dbg_dump_tokens;
-  /* Debug: Dump ast */
-  bool dbg_dump_ast;
-} Args;
+  /* No error */
+  kTargetNoErr,
+  /* Invalid target */
+  kTargetInvTarget
+} TargetErr;
+
+// ========================================================================== //
+// Target
+// ========================================================================== //
+
+/* Target machine */
+typedef struct Target
+{
+  /* Triple */
+  LLVMTripleRef triple;
+  /* Machine */
+  LLVMTargetMachineRef machine;
+  /* Data layout */
+  LLVMTargetDataRef data_layout;
+} Target;
+
+// -------------------------------------------------------------------------- //
+
+TargetErr
+make_target(const Str* target_name, Target* p_target);
 
 // -------------------------------------------------------------------------- //
 
 void
-make_args(int argc, char** argv, Args* p_args);
+release_target(Target* target);
 
 // -------------------------------------------------------------------------- //
 
-void
-release_args(Args* p_args);
+u64
+target_get_type_sizeof(const Target* target, Type* type);
 
-#endif // LN_ARGS_H
+// -------------------------------------------------------------------------- //
+
+u64
+target_get_type_alignof(const Target* target, Type* type);
+
+#endif // LN_TARGET_H

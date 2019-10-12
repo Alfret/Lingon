@@ -575,7 +575,7 @@ tok_list_dump(const TokList* list)
 {
   const Tok* tok;
   TokIter iter = make_tok_iter(list);
-  printf("TokList:\n");
+  printf("[TokList]\n");
   while ((tok = tok_iter_next(&iter)) != NULL) {
     Str kind_name = tok_kind_str(tok->kind);
     Str value = str_slice_to_string(&tok->value);

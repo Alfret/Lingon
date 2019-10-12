@@ -20,11 +20,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <llvm-c/Core.h>
-
 #include "llvm_util.h"
-#include "str.h"
-#include "type.h"
+
+// ========================================================================== //
+// LLVM
+// ========================================================================== //
+
+void
+llvm_init()
+{
+  // Initialize all targets
+  LLVMInitializeAllTargets();
+  LLVMInitializeAllTargetInfos();
+  LLVMInitializeAllTargetMCs();
+  LLVMInitializeAllAsmPrinters();
+  LLVMInitializeAllAsmParsers();
+  LLVMInitializeAllDisassemblers();
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+llvm_cleanup()
+{
+  LLVMShutdown();
+}
 
 // ========================================================================== //
 // LLVMUtil

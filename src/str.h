@@ -41,6 +41,12 @@ cstr_len(const char* str);
 
 // -------------------------------------------------------------------------- //
 
+/* Copy c-str */
+char*
+cstr_copy(const char* str);
+
+// -------------------------------------------------------------------------- //
+
 /* c-str equality */
 bool
 cstr_eq(const char* str0, const char* str1);

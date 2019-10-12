@@ -27,6 +27,7 @@ set(SOURCES
         src/err.c
         src/file.c
         src/lex.c
+        src/llvm_c_ext.cpp
         src/llvm_util.c
         src/lsp.c
         src/main.c
@@ -34,6 +35,7 @@ set(SOURCES
         src/span.c
         src/src.c
         src/str.c
+        src/target.c
         src/type.c
         deps/alf/alf_unicode.c
         deps/chif/chif_net.c

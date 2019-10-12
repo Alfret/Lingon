@@ -47,6 +47,14 @@ make_args(int argc, char** argv, Args* p_args)
         exit(-1);
       }
       args.output = make_str_copy(argv[++i]);
+    } else if (cstr_eq(argv[i], "--target") || cstr_eq(argv[i], "-t")) {
+      if (argc < i + 2) {
+        printf("Missing arguments to '%s'. Please specify a target "
+               "architecture file path\n",
+               argv[i]);
+        exit(-1);
+      }
+      args.target = make_str_copy(argv[++i]);
     } else if (cstr_eq(argv[i], "--verbose") || cstr_eq(argv[i], "-v")) {
       args.verbose = true;
     } else if (cstr_eq(argv[i], "--lsp")) {
@@ -93,6 +101,7 @@ release_args(Args* p_args)
   release_str(&p_args->lsp_data.port);
   release_str(&p_args->lsp_data.host);
   release_str(&p_args->lsp_data.type);
+  release_str(&p_args->target);
   release_str(&p_args->output);
   release_str_list(&p_args->input);
 }
