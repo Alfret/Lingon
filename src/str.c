@@ -248,7 +248,7 @@ StrSlice
 make_str_slice(const Str* str, u32 off, u32 count)
 {
   if (!str) {
-    return make_str_slice_null();
+    return str_slice_null();
   }
   return (StrSlice){ .ptr = str->buf + off, .count = count };
 }
@@ -256,7 +256,7 @@ make_str_slice(const Str* str, u32 off, u32 count)
 // -------------------------------------------------------------------------- //
 
 StrSlice
-make_str_slice_null()
+str_slice_null()
 {
   return (StrSlice){ .ptr = NULL, .count = 0 };
 }

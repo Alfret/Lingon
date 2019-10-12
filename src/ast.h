@@ -33,6 +33,8 @@ typedef struct AstParam AstParam;
 typedef struct AstBlock AstBlock;
 typedef struct AstLet AstLet;
 typedef struct AstRet AstRet;
+typedef struct AstBinop AstBinop;
+typedef struct AstConst AstConst;
 typedef struct AstType AstType;
 typedef struct Ast Ast;
 
@@ -57,6 +59,10 @@ typedef enum AstKind
   kAstLet,
   /* Ret node */
   kAstRet,
+  /* Binop node */
+  kAstBinop,
+  /* Const node */
+  kAstConst,
   /* Tupe node */
   kAstType
 } AstKind;
@@ -138,6 +144,12 @@ release_ast_prog(Ast* ast);
 void
 ast_prog_add_fn(Ast* ast_prog, Ast* ast_fn);
 
+// -------------------------------------------------------------------------- //
+
+/* Dump */
+void
+ast_prog_dump(Ast* ast, u32 indent);
+
 // ========================================================================== //
 // AstFn
 // ========================================================================== //
@@ -177,6 +189,12 @@ ast_fn_add_param(Ast* ast_fn, Ast* ast_param);
 void
 ast_fn_set_ret(Ast* ast_fn, Ast* ast_ret);
 
+// -------------------------------------------------------------------------- //
+
+/* Dump */
+void
+ast_fn_dump(Ast* ast, u32 indent);
+
 // ========================================================================== //
 // AstParam
 // ========================================================================== //
@@ -199,6 +217,12 @@ make_ast_param();
 
 void
 release_ast_param(Ast* ast);
+
+// -------------------------------------------------------------------------- //
+
+/* Dump */
+void
+ast_param_dump(Ast* ast, u32 indent);
 
 // ========================================================================== //
 // AstBlock
@@ -227,6 +251,12 @@ release_ast_block(Ast* ast);
 void
 ast_block_add_stmt(Ast* ast_block, Ast* ast_stmt);
 
+// -------------------------------------------------------------------------- //
+
+/* Dump */
+void
+ast_block_dump(Ast* ast, u32 indent);
+
 // ========================================================================== //
 // AstLet
 // ========================================================================== //
@@ -235,6 +265,8 @@ typedef struct AstLet
 {
   /* Name */
   StrSlice name;
+  /* Optional type */
+  Ast* type;
   /* Assigned expr */
   Ast* expr;
 } AstLet;
@@ -243,7 +275,7 @@ typedef struct AstLet
 
 /* Make 'let' node */
 Ast*
-make_ast_let(const StrSlice* name);
+make_ast_let();
 
 // -------------------------------------------------------------------------- //
 
@@ -253,9 +285,27 @@ release_ast_let(Ast* ast_let);
 
 // -------------------------------------------------------------------------- //
 
+/* Set let name */
+void
+ast_let_set_name(Ast* ast_let, StrSlice name);
+
+// -------------------------------------------------------------------------- //
+
+/* Set type */
+void
+ast_let_set_type(Ast* ast_let, Ast* ast_type);
+
+// -------------------------------------------------------------------------- //
+
 /* Set expr that is being assigned */
 void
 ast_let_set_assigned(Ast* ast_let, Ast* ast_expr);
+
+// -------------------------------------------------------------------------- //
+
+/* Dump */
+void
+ast_let_dump(Ast* ast, u32 indent);
 
 // ========================================================================== //
 // AstRet
@@ -277,6 +327,115 @@ make_ast_ret(Ast* ast_expr);
 void
 release_ast_ret(Ast* ast_ret);
 
+// -------------------------------------------------------------------------- //
+
+/* Dump */
+void
+ast_ret_dump(Ast* ast, u32 indent);
+
+// ========================================================================== //
+// AstBinop
+// ========================================================================== //
+
+typedef enum AstBinopKind
+{
+  kAstBinopAdd,
+  kAstBinopSub,
+  kAstBinopMul,
+  kAstBinopDiv,
+  kAstBinopMod,
+} AstBinopKind;
+
+// -------------------------------------------------------------------------- //
+
+typedef struct AstBinop
+{
+  /* Kind */
+  AstBinopKind kind;
+  /* Left-hand side */
+  Ast* lhs;
+  /* Right-hand side */
+  Ast* rhs;
+} AstBinop;
+
+// -------------------------------------------------------------------------- //
+
+Ast*
+make_ast_binop(AstBinopKind kind);
+
+// -------------------------------------------------------------------------- //
+
+void
+release_ast_binop(Ast* ast_binop);
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_binop_set_kind(Ast* ast_binop, AstBinopKind kind);
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_binop_set_lhs(Ast* ast_binop, Ast* ast_lhs);
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_binop_set_rhs(Ast* ast_binop, Ast* ast_rhs);
+
+// -------------------------------------------------------------------------- //
+
+/* Dump */
+void
+ast_binop_dump(Ast* ast, u32 indent);
+
+// ========================================================================== //
+// AstConst
+// ========================================================================== //
+
+typedef enum AstConstKind
+{
+  kAstConstInt,
+  kAstConstFloat,
+  kAstConstStr,
+} AstConstKind;
+
+// -------------------------------------------------------------------------- //
+
+typedef struct AstConst
+{
+  /* Const kind */
+  AstConstKind kind;
+  /* Value */
+  StrSlice value;
+} AstConst;
+
+// -------------------------------------------------------------------------- //
+
+Ast*
+make_ast_const(AstConstKind kind, StrSlice value);
+
+// -------------------------------------------------------------------------- //
+
+void
+release_ast_const(Ast* ast_const);
+
+// -------------------------------------------------------------------------- //
+
+AstConstKind
+ast_const_get_kind(Ast* ast_const);
+
+// -------------------------------------------------------------------------- //
+
+u64
+ast_const_to_u64(Ast* ast_const);
+
+// -------------------------------------------------------------------------- //
+
+/* Dump */
+void
+ast_const_dump(Ast* ast, u32 indent);
+
 // ========================================================================== //
 // AstType
 // ========================================================================== //
@@ -297,6 +456,12 @@ make_ast_type(Type* type);
 
 void
 release_ast_type(Ast* ast);
+
+// -------------------------------------------------------------------------- //
+
+/* Dump */
+void
+ast_type_dump(Ast* ast, u32 indent);
 
 // ========================================================================== //
 // Ast
@@ -323,6 +488,10 @@ typedef struct Ast
     AstLet let;
     /* Ret */
     AstRet ret;
+    /* Binop */
+    AstBinop binop;
+    /* Constant */
+    AstConst constant;
     /* Type */
     AstType type;
   };
@@ -350,5 +519,17 @@ ast_is_stmt(Ast* ast);
 /* Check if ast is expr */
 bool
 ast_is_expr(Ast* ast);
+
+// -------------------------------------------------------------------------- //
+
+/* Dump ast */
+void
+ast_dump(Ast* ast);
+
+// -------------------------------------------------------------------------- //
+
+/* Dump ast at indentatin */
+void
+ast_dump_aux(Ast* ast, u32 indent);
 
 #endif // LN_AST_H

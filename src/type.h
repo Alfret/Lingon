@@ -50,7 +50,7 @@ typedef enum TypeKind
   kTypeF64,
 
   kTypeArray,
-  kTypePointer,
+  kTypePtr,
   kTypeStruct,
   kTypeEnum,
   kTypeTrait,
@@ -59,6 +59,10 @@ typedef enum TypeKind
 // ========================================================================== //
 // Type
 // ========================================================================== //
+
+#define kTypeArrayUnknownLen 0xFFFFFFFFFFFFFFFF
+
+// -------------------------------------------------------------------------- //
 
 /* Type data union */
 typedef struct Type
@@ -73,7 +77,7 @@ typedef struct Type
       /* Array type */
       struct Type* type;
       /* Length */
-      u32 len;
+      u64 len;
     } array;
     struct
     {
@@ -107,6 +111,12 @@ types_cleanup();
 
 // -------------------------------------------------------------------------- //
 
+/* Gets type name. Str must be released */
+Str
+type_to_str(Type* type);
+
+// -------------------------------------------------------------------------- //
+
 /* Checks if type is a primitive type */
 bool
 type_is_primitive(Type* type);
@@ -121,7 +131,7 @@ get_type_from_name(const StrSlice* name);
 
 /* Gets an array type */
 Type*
-get_type_array(Type* elem_type, u32 len);
+get_type_array(Type* elem_type, u64 len);
 
 // -------------------------------------------------------------------------- //
 

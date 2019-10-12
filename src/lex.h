@@ -100,30 +100,55 @@ tok_kw_kind_get(StrSlice* slice, TokKwKind* p_kind);
 
 typedef enum TokSymKind
 {
+  /* '+' */
   kTokSymAdd,
+  /* '-' */
   kTokSymSub,
+  /* '*' */
   kTokSymMul,
+  /* '/' */
   kTokSymDiv,
+  /* '%' */
   kTokSymMod,
+  /* '&' */
   kTokSymAnd,
+  /* '|' */
   kTokSymOr,
+  /* '^' */
   kTokSymXor,
+  /* '~' */
   kTokSymInvert,
+  /* '<' */
   kTokSymLess,
+  /* '>' */
   kTokSymGreater,
+  /* '=' */
   kTokSymEqual,
+  /* '!' */
   kTokSymExcl,
+  /* '?' */
   kTokSymQmark,
+  /* '(' */
   kTokSymLeftParen,
+  /* ')' */
   kTokSymRightParen,
+  /* '[' */
   kTokSymLeftBracket,
+  /* ']' */
   kTokSymRightBracket,
+  /* '{' */
   kTokSymLeftBrace,
+  /* '}' */
   kTokSymRightBrace,
+  /* ':' */
   kTokSymColon,
+  /* ';' */
   kTokSymSemicolon,
+  /* ',' */
   kTokSymComma,
+  /* ''' */
   kTokSymApostrophe,
+  /* '.' */
   kTokSymPeriod,
 } TokSymKind;
 
@@ -205,6 +230,18 @@ tok_list_lex(const Src* src, TokList* p_list);
 /* Push token at end of list */
 void
 tok_list_push(TokList* list, const Tok* tok);
+
+// -------------------------------------------------------------------------- //
+
+/* Gets tok in list */
+const Tok*
+tok_list_get(const TokList* list, u32 index);
+
+// -------------------------------------------------------------------------- //
+
+/* Gets last tok in list */
+const Tok*
+tok_list_last(const TokList* list);
 
 // -------------------------------------------------------------------------- //
 

@@ -530,6 +530,23 @@ tok_list_push(TokList* list, const Tok* tok)
 
 // -------------------------------------------------------------------------- //
 
+const Tok*
+tok_list_get(const TokList* list, u32 index)
+{
+  assrt(index < list->len, make_str("Index out of bounds"));
+  return &list->buf[index];
+}
+
+// -------------------------------------------------------------------------- //
+
+const Tok*
+tok_list_last(const TokList* list)
+{
+  return tok_list_get(list, list->len - 1);
+}
+
+// -------------------------------------------------------------------------- //
+
 void
 tok_list_reserve(TokList* list, u32 cap)
 {

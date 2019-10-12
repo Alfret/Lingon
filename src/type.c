@@ -148,6 +148,61 @@ types_init()
 
 // -------------------------------------------------------------------------- //
 
+#define LN_TYPE_TO_STR_BASIC(knd, name)                                        \
+  do {                                                                         \
+    if (type->kind == knd) {                                                   \
+      return make_str_copy(name);                                              \
+    }                                                                          \
+  } while (0)
+
+Str
+type_to_str(Type* type)
+{
+  LN_TYPE_TO_STR_BASIC(kTypeVoid, "void");
+  LN_TYPE_TO_STR_BASIC(kTypeChar, "char");
+  LN_TYPE_TO_STR_BASIC(kTypeBool, "bool");
+  LN_TYPE_TO_STR_BASIC(kTypeU8, "u8");
+  LN_TYPE_TO_STR_BASIC(kTypeS8, "s8");
+  LN_TYPE_TO_STR_BASIC(kTypeU16, "u16");
+  LN_TYPE_TO_STR_BASIC(kTypeS16, "s16");
+  LN_TYPE_TO_STR_BASIC(kTypeU32, "u32");
+  LN_TYPE_TO_STR_BASIC(kTypeS32, "s32");
+  LN_TYPE_TO_STR_BASIC(kTypeU64, "u64");
+  LN_TYPE_TO_STR_BASIC(kTypeS64, "s64");
+  LN_TYPE_TO_STR_BASIC(kTypeF32, "f32");
+  LN_TYPE_TO_STR_BASIC(kTypeF64, "f64");
+
+  if (type->kind == kTypeArray) {
+    Str elem_str = type_to_str(type->array.type);
+    Str array_str;
+    if (type->array.len == kTypeArrayUnknownLen) {
+      array_str = str_format(make_str("[%s]"), str_cstr(&elem_str));
+    } else {
+      array_str =
+        str_format(make_str("[%s; %u]"), str_cstr(&elem_str), type->array.len);
+    }
+    release_str(&elem_str);
+    return array_str;
+  } else if (type->kind == kTypePtr) {
+    Str ptee_str = type_to_str(type->pointer.type);
+    Str ptr_str = str_format(make_str("%s*"), str_cstr(&ptee_str));
+    release_str(&ptee_str);
+    return ptr_str;
+  } else if (type->kind == kTypeStruct) {
+    LN_NOT_IMPL();
+  } else if (type->kind == kTypeEnum) {
+    LN_NOT_IMPL();
+  } else if (type->kind == kTypeTrait) {
+    LN_NOT_IMPL();
+  }
+
+  return make_str_copy("Unknown");
+}
+
+#undef LN_TYPE_TO_STR_BASIC
+
+// -------------------------------------------------------------------------- //
+
 void
 types_cleanup()
 {
@@ -207,7 +262,7 @@ get_type_from_name(const StrSlice* name)
 // -------------------------------------------------------------------------- //
 
 Type*
-get_type_array(Type* elem_type, u32 len)
+get_type_array(Type* elem_type, u64 len)
 {
   for (u32 i = 0; i < s_type_list.len; i++) {
     Type* other = type_list_get(&s_type_list, i);
@@ -229,13 +284,12 @@ get_type_ptr(Type* pointee_type)
 {
   for (u32 i = 0; i < s_type_list.len; i++) {
     Type* other = type_list_get(&s_type_list, i);
-    if (other->kind == kTypePointer && other->pointer.type == pointee_type) {
+    if (other->kind == kTypePtr && other->pointer.type == pointee_type) {
       return other;
     }
   }
 
-  Type type =
-    (Type){ .kind = kTypePointer, .pointer = { .type = pointee_type } };
+  Type type = (Type){ .kind = kTypePtr, .pointer = { .type = pointee_type } };
   return type_list_append(&s_type_list, &type);
 }
 

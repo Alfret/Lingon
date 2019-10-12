@@ -73,7 +73,7 @@ to_llvm_type(Type* type)
     case kTypeArray: {
       return LLVMArrayType(to_llvm_type(type->array.type), type->array.len);
     }
-    case kTypePointer: {
+    case kTypePtr: {
       return LLVMPointerType(to_llvm_type(type->pointer.type), 0);
     }
     case kTypeStruct: {

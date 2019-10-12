@@ -99,7 +99,7 @@ main_compile_files(const Args* args)
   // Compile each file
   for (u32 i = 0; i < args->input.len; i++) {
     const Str* in = str_list_get(&args->input, i);
-    printf(con_col256(105) "Compiling:" con_col_reset() " %s\n", str_cstr(in));
+    printf(con_col256(105) "Compiling:" con_col_reset " %s\n", str_cstr(in));
 
     // Lexical analysis
     Src src;
@@ -125,6 +125,10 @@ main_compile_files(const Args* args)
     Ast* ast = parser_parse(&parser);
     if (args->dbg_dump_ast) {
       LN_UNUSED(ast);
+    }
+
+    if (args->dbg_dump_ast) {
+      ast_dump(ast);
     }
 
     // Release

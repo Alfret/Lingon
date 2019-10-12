@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include "err.h"
+#include "con.h"
 
 // ========================================================================== //
 // Util
@@ -243,16 +244,18 @@ err_builder_emit(const ErrBuilder* builder)
   // Print error
   if (builder->err_desc) {
     if (builder->err_num != kErrNumNone) {
-      printf(
-        "error[%04u]: %s\n", builder->err_num, str_cstr(builder->err_desc));
+      printf(con_col_err "error" con_col_reset "[%04u]: %s\n",
+             builder->err_num,
+             str_cstr(builder->err_desc));
     } else {
-      printf("error: %s\n", str_cstr(builder->err_desc));
+      printf(con_col_err "error" con_col_reset ": %s\n",
+             str_cstr(builder->err_desc));
     }
   } else {
     if (builder->err_num != kErrNumNone) {
-      printf("error[%04u]:\n", builder->err_num);
+      printf(con_col_err "error" con_col_reset "[%04u]:\n", builder->err_num);
     } else {
-      printf("error:\n");
+      printf(con_col_err "error" con_col_reset ":\n");
     }
   }
 

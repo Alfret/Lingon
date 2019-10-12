@@ -21,21 +21,21 @@
 // SOFTWARE.
 
 #include <memory.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "ast.h"
+
+#define kAstIndentStep 1
 
 // ========================================================================== //
 // Util
 // ========================================================================== //
 
-#define LN_AST_KIND_CHECK_PRED(predicate)                                      \
+#define LN_AST_KIND_CHECK(predicate)                                           \
   do {                                                                         \
     assrt(predicate, make_str("Wrong ast kind"));                              \
   } while (0)
-
-// -------------------------------------------------------------------------- //
-
-#define LN_AST_KIND_CHECK(ast, _kind) LN_AST_KIND_CHECK_PRED(ast->kind == _kind)
 
 // ========================================================================== //
 // AstList
@@ -57,6 +57,10 @@ make_ast_list(u32 cap)
 void
 release_ast_list(AstList* list)
 {
+  for (u32 i = 0; i < list->len; i++) {
+    Ast* ast_i = ast_list_get(list, i);
+    release_ast(ast_i);
+  }
   release(list->buf);
 }
 
@@ -126,7 +130,7 @@ make_ast_prog()
 void
 release_ast_prog(Ast* ast)
 {
-  LN_AST_KIND_CHECK(ast, kAstProg);
+  LN_AST_KIND_CHECK(ast->kind == kAstProg);
   release_ast_list(&ast->prog.funs);
   release(ast);
 }
@@ -136,9 +140,22 @@ release_ast_prog(Ast* ast)
 void
 ast_prog_add_fn(Ast* ast_prog, Ast* ast_fn)
 {
-  LN_AST_KIND_CHECK(ast_prog, kAstProg);
-  LN_AST_KIND_CHECK(ast_fn, kAstFn);
+  LN_AST_KIND_CHECK(ast_prog->kind == kAstProg);
+  LN_AST_KIND_CHECK(ast_fn->kind == kAstFn);
   ast_list_append(&ast_prog->prog.funs, ast_fn);
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_prog_dump(Ast* ast, u32 indent)
+{
+  LN_AST_KIND_CHECK(ast->kind == kAstProg);
+  printf("%*sprogram:\n", indent, "");
+  for (u32 i = 0; i < ast->prog.funs.len; i++) {
+    Ast* ast_fn = ast_list_get(&ast->prog.funs, i);
+    ast_dump_aux(ast_fn, indent + kAstIndentStep);
+  }
 }
 
 // ========================================================================== //
@@ -159,7 +176,10 @@ make_ast_fn(StrSlice name)
 void
 release_ast_fn(Ast* ast)
 {
-  LN_AST_KIND_CHECK(ast, kAstFn);
+  LN_AST_KIND_CHECK(ast->kind == kAstFn);
+  release_ast_list(&ast->fn.params);
+  release_ast(ast->fn.ret);
+  release_ast(ast->fn.body);
   release(ast);
 }
 
@@ -168,8 +188,8 @@ release_ast_fn(Ast* ast)
 void
 ast_fn_add_param(Ast* ast_fn, Ast* ast_param)
 {
-  LN_AST_KIND_CHECK(ast_fn, kAstFn);
-  LN_AST_KIND_CHECK(ast_param, kAstParam);
+  LN_AST_KIND_CHECK(ast_fn->kind == kAstFn);
+  LN_AST_KIND_CHECK(ast_param->kind == kAstParam);
   ast_list_append(&ast_fn->fn.params, ast_param);
 }
 
@@ -178,9 +198,26 @@ ast_fn_add_param(Ast* ast_fn, Ast* ast_param)
 void
 ast_fn_set_ret(Ast* ast_fn, Ast* ast_ret)
 {
-  LN_AST_KIND_CHECK(ast_fn, kAstFn);
-  LN_AST_KIND_CHECK(ast_ret, kAstType);
+  LN_AST_KIND_CHECK(ast_fn->kind == kAstFn);
+  LN_AST_KIND_CHECK(ast_ret->kind == kAstType);
   ast_fn->fn.ret = ast_ret;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_fn_dump(Ast* ast, u32 indent)
+{
+  LN_AST_KIND_CHECK(ast->kind == kAstFn);
+  printf("%*sfun '%.*s':\n", indent, "", str_slice_print(&ast->fn.name));
+  for (u32 i = 0; i < ast->fn.params.len; i++) {
+    Ast* ast_i = ast_list_get(&ast->fn.params, i);
+    ast_dump_aux(ast_i, indent + kAstIndentStep);
+  }
+  printf("%*sret:\n", indent + kAstIndentStep, "");
+  ast_dump_aux(ast->fn.ret, indent + (2 * kAstIndentStep));
+  printf("%*sbody:\n", indent + kAstIndentStep, "");
+  ast_dump_aux(ast->fn.body, indent + (2 * kAstIndentStep));
 }
 
 // ========================================================================== //
@@ -192,7 +229,7 @@ make_ast_param()
 {
   Ast* ast = make_ast_invalid();
   ast->kind = kAstParam;
-  ast->param = (AstParam){ .name = make_str_slice_null(), .type = NULL };
+  ast->param = (AstParam){ .name = str_slice_null(), .type = NULL };
   return ast;
 }
 
@@ -201,8 +238,18 @@ make_ast_param()
 void
 release_ast_param(Ast* ast)
 {
-  LN_AST_KIND_CHECK(ast, kAstParam);
+  LN_AST_KIND_CHECK(ast->kind == kAstParam);
   release(ast);
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_param_dump(Ast* ast, u32 indent)
+{
+  LN_AST_KIND_CHECK(ast->kind == kAstParam);
+  printf("%*sparam (%.*s):\n", indent, "", str_slice_print(&ast->param.name));
+  ast_dump_aux(ast->param.type, indent + kAstIndentStep);
 }
 
 // ========================================================================== //
@@ -223,7 +270,7 @@ make_ast_block()
 void
 release_ast_block(Ast* ast)
 {
-  LN_AST_KIND_CHECK(ast, kAstBlock);
+  LN_AST_KIND_CHECK(ast->kind == kAstBlock);
   release_ast_list(&ast->block.stmts);
   release(ast);
 }
@@ -233,9 +280,22 @@ release_ast_block(Ast* ast)
 void
 ast_block_add_stmt(Ast* ast_block, Ast* ast_stmt)
 {
-  LN_AST_KIND_CHECK(ast_block, kAstBlock);
-  LN_AST_KIND_CHECK_PRED(ast_is_stmt(ast_stmt));
+  LN_AST_KIND_CHECK(ast_block->kind == kAstBlock);
+  LN_AST_KIND_CHECK(ast_is_stmt(ast_stmt));
   ast_list_append(&ast_block->block.stmts, ast_stmt);
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_block_dump(Ast* ast, u32 indent)
+{
+  LN_AST_KIND_CHECK(ast->kind == kAstBlock);
+  printf("%*sblock:\n", indent, "");
+  for (u32 i = 0; i < ast->block.stmts.len; i++) {
+    Ast* ast_i = ast_list_get(&ast->block.stmts, i);
+    ast_dump_aux(ast_i, indent + kAstIndentStep);
+  }
 }
 
 // ========================================================================== //
@@ -243,11 +303,11 @@ ast_block_add_stmt(Ast* ast_block, Ast* ast_stmt)
 // ========================================================================== //
 
 Ast*
-make_ast_let(const StrSlice* name)
+make_ast_let()
 {
   Ast* ast = make_ast_invalid();
   ast->kind = kAstLet;
-  ast->let = (AstLet){ .name = *name, .expr = NULL };
+  ast->let = (AstLet){ .name = str_slice_null(), .expr = NULL };
   return ast;
 }
 
@@ -256,7 +316,7 @@ make_ast_let(const StrSlice* name)
 void
 release_ast_let(Ast* ast_let)
 {
-  LN_AST_KIND_CHECK(ast_let, kAstLet);
+  LN_AST_KIND_CHECK(ast_let->kind == kAstLet);
   release_ast(ast_let->let.expr);
   release(ast_let);
 }
@@ -264,10 +324,39 @@ release_ast_let(Ast* ast_let)
 // -------------------------------------------------------------------------- //
 
 void
+ast_let_set_name(Ast* ast_let, StrSlice name)
+{
+  LN_AST_KIND_CHECK(ast_let->kind == kAstLet);
+  ast_let->let.name = name;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_let_set_type(Ast* ast_let, Ast* ast_type)
+{
+  LN_AST_KIND_CHECK(ast_let->kind == kAstLet);
+  LN_AST_KIND_CHECK(ast_type->kind == kAstType);
+  ast_let->let.type = ast_type;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
 ast_let_set_assigned(Ast* ast_let, Ast* ast_expr)
 {
-  LN_AST_KIND_CHECK_PRED(ast_is_expr(ast_expr));
+  LN_AST_KIND_CHECK(ast_let->kind == kAstLet);
+  LN_AST_KIND_CHECK(ast_is_expr(ast_expr));
   ast_let->let.expr = ast_expr;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_let_dump(Ast* ast, u32 indent)
+{
+  LN_UNUSED(ast);
+  LN_UNUSED(indent);
 }
 
 // ========================================================================== //
@@ -277,7 +366,7 @@ ast_let_set_assigned(Ast* ast_let, Ast* ast_expr)
 Ast*
 make_ast_ret(Ast* ast_expr)
 {
-  LN_AST_KIND_CHECK_PRED(ast_is_expr(ast_expr));
+  LN_AST_KIND_CHECK(ast_is_expr(ast_expr));
   Ast* ast = make_ast_invalid();
   ast->kind = kAstRet;
   ast->ret = (AstRet){ .expr = ast_expr };
@@ -289,9 +378,161 @@ make_ast_ret(Ast* ast_expr)
 void
 release_ast_ret(Ast* ast_ret)
 {
-  LN_AST_KIND_CHECK(ast_ret, kAstRet);
+  LN_AST_KIND_CHECK(ast_ret->kind == kAstRet);
   release_ast(ast_ret->ret.expr);
   release(ast_ret);
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_ret_dump(Ast* ast, u32 indent)
+{
+  LN_AST_KIND_CHECK(ast->kind == kAstRet);
+  printf("%*sret:\n", indent, "");
+  ast_dump_aux(ast->ret.expr, indent + kAstIndentStep);
+}
+
+// ========================================================================== //
+// AstBinop
+// ========================================================================== //
+
+Ast*
+make_ast_binop(AstBinopKind kind)
+{
+  Ast* ast = make_ast_invalid();
+  ast->kind = kAstBinop;
+  ast->binop = (AstBinop){ .kind = kind, .lhs = NULL, .rhs = NULL };
+  return ast;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+release_ast_binop(Ast* ast_binop)
+{
+  LN_AST_KIND_CHECK(ast_binop->kind == kAstBinop);
+  release_ast(ast_binop->binop.lhs);
+  release_ast(ast_binop->binop.rhs);
+  release(ast_binop);
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_binop_set_kind(Ast* ast_binop, AstBinopKind kind)
+{
+  LN_AST_KIND_CHECK(ast_binop->kind == kAstBinop);
+  ast_binop->binop.kind = kind;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_binop_set_lhs(Ast* ast_binop, Ast* ast_lhs)
+{
+  LN_AST_KIND_CHECK(ast_binop->kind == kAstBinop);
+  LN_AST_KIND_CHECK(ast_is_expr(ast_lhs));
+  ast_binop->binop.lhs = ast_lhs;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_binop_set_rhs(Ast* ast_binop, Ast* ast_rhs)
+{
+  LN_AST_KIND_CHECK(ast_binop->kind == kAstBinop);
+  LN_AST_KIND_CHECK(ast_is_expr(ast_rhs));
+  ast_binop->binop.rhs = ast_rhs;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_binop_dump(Ast* ast, u32 indent)
+{
+  LN_AST_KIND_CHECK(ast->kind == kAstBinop);
+
+  // Op str
+  char* op_str = "";
+  if (ast->binop.kind == kAstBinopAdd) {
+    op_str = "+";
+  } else if (ast->binop.kind == kAstBinopSub) {
+    op_str = "-";
+  } else if (ast->binop.kind == kAstBinopMul) {
+    op_str = "*";
+  } else if (ast->binop.kind == kAstBinopDiv) {
+    op_str = "/";
+  } else if (ast->binop.kind == kAstBinopMod) {
+    op_str = "%";
+  }
+
+  // Dump binop
+  printf("%*sbinop '%s':\n", indent, "", op_str);
+  printf("%*slhs:\n", indent + kAstIndentStep, "");
+  ast_dump_aux(ast->binop.lhs, indent + (2 * kAstIndentStep));
+  printf("%*srhs:\n", indent + kAstIndentStep, "");
+  ast_dump_aux(ast->binop.rhs, indent + (2 * kAstIndentStep));
+}
+
+// ========================================================================== //
+// AstConst
+// ========================================================================== //
+
+Ast*
+make_ast_const(AstConstKind kind, StrSlice value)
+{
+  Ast* ast = make_ast_invalid();
+  ast->kind = kAstConst;
+  ast->constant = (AstConst){ .kind = kind, .value = value };
+  return ast;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+release_ast_const(Ast* ast_const)
+{
+  LN_AST_KIND_CHECK(ast_const->kind == kAstConst);
+  release(ast_const);
+}
+
+// -------------------------------------------------------------------------- //
+
+AstConstKind
+ast_const_get_kind(Ast* ast_const)
+{
+  LN_AST_KIND_CHECK(ast_const->kind == kAstConst);
+  return ast_const->constant.kind;
+}
+
+// -------------------------------------------------------------------------- //
+
+u64
+ast_const_to_u64(Ast* ast_const)
+{
+  // Preconditions
+  LN_AST_KIND_CHECK(ast_const->kind == kAstConst);
+  assrt(
+    ast_const->constant.kind == kAstConstInt,
+    make_str("Cannot call 'ast_const_to_u64' when const kind is not 'int'"));
+
+  // Convert
+  char* end_ptr = NULL;
+  u64 value = strtoull((char*)ast_const->constant.value.ptr, &end_ptr, 10);
+  assrt(end_ptr != (char*)ast_const->constant.value.ptr,
+        make_str("Const int could not be converted to it's 'u64' value"));
+  return value;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_const_dump(Ast* ast, u32 indent)
+{
+  LN_AST_KIND_CHECK(ast->kind == kAstConst);
+  printf(
+    "%*sconst: '%.*s'\n", indent, "", str_slice_print(&ast->constant.value));
 }
 
 // ========================================================================== //
@@ -312,8 +553,19 @@ make_ast_type(Type* type)
 void
 release_ast_type(Ast* ast)
 {
-  LN_AST_KIND_CHECK(ast, kAstType);
+  LN_AST_KIND_CHECK(ast->kind == kAstType);
   release(ast);
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_type_dump(Ast* ast, u32 indent)
+{
+  LN_AST_KIND_CHECK(ast->kind == kAstType);
+  Str type_str = type_to_str(ast->type.type);
+  printf("%*stype: '%s'\n", indent, "", str_cstr(&type_str));
+  release_str(&type_str);
 }
 
 // ========================================================================== //
@@ -324,6 +576,7 @@ Ast*
 make_ast_invalid()
 {
   Ast* ast = alloc(sizeof(Ast), kLnMinAlign);
+  assrt(ast != NULL, make_str("Allocation of AST node failed"));
   ast->kind = kAstInvalid;
   return ast;
 }
@@ -339,24 +592,39 @@ release_ast(Ast* ast)
     }
     case kAstProg: {
       release_ast_prog(ast);
+      break;
     }
     case kAstFn: {
       release_ast_fn(ast);
+      break;
     }
     case kAstParam: {
       release_ast_param(ast);
+      break;
     }
     case kAstBlock: {
       release_ast_block(ast);
+      break;
     }
     case kAstLet: {
       release_ast_let(ast);
+      break;
     }
     case kAstRet: {
       release_ast_ret(ast);
+      break;
+    }
+    case kAstBinop: {
+      release_ast_binop(ast);
+      break;
+    }
+    case kAstConst: {
+      release_ast_const(ast);
+      break;
     }
     case kAstType: {
       release_ast_type(ast);
+      break;
     }
     default: {
       panic(make_str("Invalid token kind"));
@@ -369,6 +637,9 @@ release_ast(Ast* ast)
 bool
 ast_is_stmt(Ast* ast)
 {
+  if (!ast) {
+    return false;
+  }
   return ast->kind == kAstLet || ast->kind == kAstRet;
 }
 
@@ -378,6 +649,68 @@ ast_is_stmt(Ast* ast)
 bool
 ast_is_expr(Ast* ast)
 {
-  LN_UNUSED(ast);
-  return false;
+  if (!ast) {
+    return false;
+  }
+  return ast->kind == kAstBinop || ast->kind == kAstConst;
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_dump(Ast* ast)
+{
+  printf("[Ast]\n");
+  ast_dump_aux(ast, 0);
+}
+
+// -------------------------------------------------------------------------- //
+
+void
+ast_dump_aux(Ast* ast, u32 indent)
+{
+  switch (ast->kind) {
+    case kAstInvalid: {
+      panic(make_str("Cannot release invalid ast"));
+    }
+    case kAstProg: {
+      ast_prog_dump(ast, indent);
+      break;
+    }
+    case kAstFn: {
+      ast_fn_dump(ast, indent);
+      break;
+    }
+    case kAstParam: {
+      ast_param_dump(ast, indent);
+      break;
+    }
+    case kAstBlock: {
+      ast_block_dump(ast, indent);
+      break;
+    }
+    case kAstLet: {
+      ast_let_dump(ast, indent);
+      break;
+    }
+    case kAstRet: {
+      ast_ret_dump(ast, indent);
+      break;
+    }
+    case kAstBinop: {
+      ast_binop_dump(ast, indent);
+      break;
+    }
+    case kAstConst: {
+      ast_const_dump(ast, indent);
+      break;
+    }
+    case kAstType: {
+      ast_type_dump(ast, indent);
+      break;
+    }
+    default: {
+      panic(make_str("Invalid token kind"));
+    }
+  }
 }

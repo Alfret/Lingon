@@ -39,11 +39,23 @@ typedef struct Str Str;
 
 #define LN_UNUSED(var) (void)var
 
+// -------------------------------------------------------------------------- //
+
 #define LN_CHECK_LEAK()                                                        \
   do {                                                                         \
     assrt(                                                                     \
       mem_usage() == 0, make_str("Leaking memory (%u bytes)"), mem_usage());   \
   } while (0)
+
+// -------------------------------------------------------------------------- //
+
+#define LN_UNREACHABLE() panic(make_str("Unreachable"))
+
+// -------------------------------------------------------------------------- //
+
+#define LN_NOT_IMPL() panic(make_str("Not Implemented"))
+
+// -------------------------------------------------------------------------- //
 
 #define LN_CONST(name, value)                                                  \
   enum                                                                         \
@@ -51,7 +63,11 @@ typedef struct Str Str;
     name = value                                                               \
   };
 
+// -------------------------------------------------------------------------- //
+
 #define LN_CLAMP(a, min, max) (a) < min ? min : ((a) > max ? max : (a))
+
+// -------------------------------------------------------------------------- //
 
 #define kLnMinAlign sizeof(void*)
 

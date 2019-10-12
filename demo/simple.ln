@@ -1,4 +1,3 @@
 fn main() -> s32 {
-    let p = 3;
-    ret p;
+    ret 0;
 }

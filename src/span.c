@@ -159,7 +159,7 @@ StrSlice
 span_line(const Span* span, const Str* str)
 {
   if (span->beg.line != span->end.line) {
-    return make_str_slice_null();
+    return str_slice_null();
   }
 
   // Find line start
@@ -193,7 +193,7 @@ StrSlice
 span_line_before(Span span, const Str* src, u32 n)
 {
   if (span.beg.line == 0) {
-    return make_str_slice_null();
+    return str_slice_null();
   }
 
   // Find end of line
@@ -218,7 +218,7 @@ span_line_before(Span span, const Str* src, u32 n)
     line_start--;
   }
   if (line_start < 0) {
-    return make_str_slice_null();
+    return str_slice_null();
   }
 
   return make_str_slice(src, line_start, line_end - line_start);
@@ -239,7 +239,7 @@ span_line_after(Span span, const Str* src, u32 n)
     line_beg++;
   }
   if (line_beg >= src->size) {
-    return make_str_slice_null();
+    return str_slice_null();
   }
 
   // Find end of next line

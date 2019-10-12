@@ -54,6 +54,6 @@ make_src_str(const Str* name, Str src)
 void
 release_src(Src* src)
 {
-  release(&src->name);
-  release(&src->src);
+  release_str(&src->name);
+  release_str(&src->src);
 }
